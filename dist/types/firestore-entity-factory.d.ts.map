@@ -1,0 +1,1 @@
+{"version":3,"file":"firestore-entity-factory.d.ts","sourceRoot":"","sources":["../../src/firestore-entity-factory.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,gBAAgB,EAAE,MAAM,0BAA0B,CAAC;AAK5D,qBAAa,sBAAsB,CAAC,MAAM;IAC5B,OAAO,CAAC,QAAQ,CAAC,cAAc;gBAAd,cAAc,EAAE,MAAM;IAEnD,YAAY,CAAC,OAAO,EAAE,gBAAgB,GAAG,MAAM,GAAG,IAAI;IAUtD,aAAa,CAAC,IAAI,EAAE,gBAAgB,EAAE,GAAG,MAAM,EAAE;CAMlD"}
