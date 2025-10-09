@@ -1,6 +1,6 @@
 {
   "name": "@schorts/firestore-admin-dao",
-  "version": "0.0.2",
+  "version": "0.0.4",
   "description": "",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
@@ -51,7 +51,7 @@
   },
   "homepage": "https://github.com/schorts99/firestore-admin-dao#readme",
   "dependencies": {
-    "@schorts/shared-kernel": "^1.2.0",
+    "@schorts/shared-kernel": "^2.0.0",
     "firebase-admin": "^13.5.0",
     "geofire-common": "^6.0.0"
   }

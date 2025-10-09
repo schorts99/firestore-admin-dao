@@ -1,11 +1,11 @@
-# 🔥 Firestore DAO
+# 🔥 Firestore Admin DAO
 
 This module provides a type-safe, domain-driven abstraction over Firestore persistence. It integrates tightly with the `Model`, `Entity`, `Criteria` and `UnitOfWork` constructs from the [Shared Kernel](https://www.npmjs.com/package/@schorts/shared-kernel), enabling expressive, consistent, and testable data access across bounded contexts.
 
 ## 🚀 Installation
 
 ```bash
-npm install --save @schorts/firestore-dao
+npm install --save @schorts/firestore-admin-dao
 ```
 
 ## 🧩 Purpose
