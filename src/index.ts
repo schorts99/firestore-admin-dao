@@ -9,7 +9,7 @@ export { EntityFirestoreFactory } from "./entity-firestore-factory";
 export { getFirestore, Firestore } from "firebase-admin/firestore";
 export { initializeApp, getApps, cert } from "firebase-admin/app";
 export { EntityRegistry, RegisterEntity } from "@schorts/shared-kernel";
-export { getAuth } from "firebase-admin/auth"
+export { getAuth, FirebaseAuthError } from "firebase-admin/auth"
 export type { App } from "firebase-admin/app";
 export type { Auth } from "firebase-admin/auth";
 

@@ -14,7 +14,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getAuth = exports.RegisterEntity = exports.EntityRegistry = exports.cert = exports.getApps = exports.initializeApp = exports.Firestore = exports.getFirestore = exports.EntityFirestoreFactory = exports.PrimitiveTypesToFirestoreFormatter = exports.FirestoreEntityFactory = exports.CriteriaToFirestoreSymbolsTranslator = exports.FirestoreTypesToPrimitivesFormatter = exports.FirestoreUnitOfWork = exports.FirestoreDAO = void 0;
+exports.FirebaseAuthError = exports.getAuth = exports.RegisterEntity = exports.EntityRegistry = exports.cert = exports.getApps = exports.initializeApp = exports.Firestore = exports.getFirestore = exports.EntityFirestoreFactory = exports.PrimitiveTypesToFirestoreFormatter = exports.FirestoreEntityFactory = exports.CriteriaToFirestoreSymbolsTranslator = exports.FirestoreTypesToPrimitivesFormatter = exports.FirestoreUnitOfWork = exports.FirestoreDAO = void 0;
 var firestore_dao_1 = require("./firestore-dao");
 Object.defineProperty(exports, "FirestoreDAO", { enumerable: true, get: function () { return firestore_dao_1.FirestoreDAO; } });
 var firestore_unit_of_work_1 = require("./firestore-unit-of-work");
@@ -41,5 +41,6 @@ Object.defineProperty(exports, "EntityRegistry", { enumerable: true, get: functi
 Object.defineProperty(exports, "RegisterEntity", { enumerable: true, get: function () { return shared_kernel_1.RegisterEntity; } });
 var auth_1 = require("firebase-admin/auth");
 Object.defineProperty(exports, "getAuth", { enumerable: true, get: function () { return auth_1.getAuth; } });
+Object.defineProperty(exports, "FirebaseAuthError", { enumerable: true, get: function () { return auth_1.FirebaseAuthError; } });
 __exportStar(require("./exceptions"), exports);
 //# sourceMappingURL=index.js.map
