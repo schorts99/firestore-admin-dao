@@ -37,6 +37,10 @@ class PrimitiveTypesToFirestoreFormatter {
                 const snakeKey = shared_kernel_1.PascalCamelToSnake.format(key);
                 formattedDates[snakeKey] = firestore_1.Timestamp.fromDate(value);
             }
+            else if (value instanceof shared_kernel_1.DateValue && value.value) {
+                const snakeKey = shared_kernel_1.PascalCamelToSnake.format(key);
+                formattedDates[snakeKey] = firestore_1.Timestamp.fromDate(value.value);
+            }
         }
         return formattedDates;
     }
