@@ -1,6 +1,6 @@
 import { Timestamp } from "firebase-admin/firestore";
 import { Geohash, geohashForLocation } from "geofire-common";
-import { CoordinatesValue, PascalCamelToSnake } from "@schorts/shared-kernel";
+import { CoordinatesValue, PascalCamelToSnake, DateValue } from "@schorts/shared-kernel";
 
 export class PrimitiveTypesToFirestoreFormatter {
   static format<Entity>(entity: Entity): Record<string, unknown> {
@@ -36,13 +36,16 @@ export class PrimitiveTypesToFirestoreFormatter {
       if (!Object.prototype.hasOwnProperty.call(entity, key)) continue;
 
       const value = (entity as any)[key];
+
       if (value instanceof Date) {
         const snakeKey = PascalCamelToSnake.format(key);
         formattedDates[snakeKey] = Timestamp.fromDate(value);
+      } else if (value instanceof DateValue && value.value) {
+        const snakeKey = PascalCamelToSnake.format(key);
+        formattedDates[snakeKey] = Timestamp.fromDate(value.value);
       }
     }
 
     return formattedDates;
   }
 }
-

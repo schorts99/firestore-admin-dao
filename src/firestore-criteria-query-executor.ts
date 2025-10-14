@@ -72,6 +72,7 @@ export class FirestoreCriteriaQueryExecutor {
       return {
         docs: filteredDocs,
         empty: filteredDocs.length === 0,
+        size: filteredDocs.length,
         forEach: (callback: (doc: DocumentSnapshot) => void) => filteredDocs.forEach(callback),
       } as QuerySnapshot;
     } else {

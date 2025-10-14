@@ -62,6 +62,12 @@ export abstract class FirestoreDAO<
     return this.firestoreEntityFactory.fromSnapshots(querySnap.docs);
   }
 
+  async countBy(criteria: Criteria): Promise<number> {
+    const querySnap = await FirestoreCriteriaQueryExecutor.execute(this.collection, criteria);
+
+    return querySnap.size;
+  }
+
   async create(entity: Entity, uow?: FirestoreUnitOfWork): Promise<Entity> {
     const docRef = this.collection.doc(
       typeof entity.id.value === "string" ? entity.id.value : entity.id.value!.toString()

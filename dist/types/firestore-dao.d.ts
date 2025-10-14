@@ -9,6 +9,7 @@ export declare abstract class FirestoreDAO<Model extends BaseModel, Entity exten
     findOneBy(criteria: Criteria): Promise<Entity | null>;
     getAll(): Promise<Entity[]>;
     search(criteria: Criteria): Promise<Entity[]>;
+    countBy(criteria: Criteria): Promise<number>;
     create(entity: Entity, uow?: FirestoreUnitOfWork): Promise<Entity>;
     update(entity: Entity, uow?: FirestoreUnitOfWork): Promise<Entity>;
     delete(entity: Entity, uow?: FirestoreUnitOfWork): Promise<Entity>;

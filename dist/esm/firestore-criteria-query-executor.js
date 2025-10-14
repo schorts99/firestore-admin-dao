@@ -51,6 +51,7 @@ class FirestoreCriteriaQueryExecutor {
             return {
                 docs: filteredDocs,
                 empty: filteredDocs.length === 0,
+                size: filteredDocs.length,
                 forEach: (callback) => filteredDocs.forEach(callback),
             };
         }
