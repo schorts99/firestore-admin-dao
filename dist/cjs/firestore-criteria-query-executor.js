@@ -5,18 +5,18 @@ const geofire_common_1 = require("geofire-common");
 const criteria_to_firestore_symbols_translator_1 = require("./criteria-to-firestore-symbols-translator");
 class FirestoreCriteriaQueryExecutor {
     static async execute(collection, criteria) {
-        const geoFilterEntry = Object.entries(criteria.filters).find(([_, filter]) => filter.operator === "GEO_RADIUS");
-        if (geoFilterEntry) {
-            const [geoField, geoFilter] = geoFilterEntry;
+        const geoFilter = criteria.filters.find(f => f.operator === "GEO_RADIUS");
+        if (geoFilter) {
+            const geoField = geoFilter.field;
             const { center, radiusInM } = geoFilter.value;
             const bounds = (0, geofire_common_1.geohashQueryBounds)(center, radiusInM);
             const promises = [];
             for (const b of bounds) {
                 let queryRef = collection;
-                for (const [field, filter] of Object.entries(criteria.filters)) {
-                    if (field === geoField)
+                for (const filter of criteria.filters) {
+                    if (filter.field === geoField)
                         continue;
-                    const firestoreField = criteria_to_firestore_symbols_translator_1.CriteriaToFirestoreSymbolsTranslator.translateField(field);
+                    const firestoreField = criteria_to_firestore_symbols_translator_1.CriteriaToFirestoreSymbolsTranslator.translateField(filter.field);
                     const firestoreOperator = criteria_to_firestore_symbols_translator_1.CriteriaToFirestoreSymbolsTranslator.translateOperator(filter.operator);
                     const firestoreValue = criteria_to_firestore_symbols_translator_1.CriteriaToFirestoreSymbolsTranslator.translateValue(filter.value);
                     queryRef = queryRef.where(firestoreField, firestoreOperator, firestoreValue);
@@ -57,9 +57,8 @@ class FirestoreCriteriaQueryExecutor {
         }
         else {
             let queryRef = collection;
-            for (const field in criteria.filters) {
-                const filter = criteria.filters[field];
-                const firestoreField = criteria_to_firestore_symbols_translator_1.CriteriaToFirestoreSymbolsTranslator.translateField(field);
+            for (const filter of criteria.filters) {
+                const firestoreField = criteria_to_firestore_symbols_translator_1.CriteriaToFirestoreSymbolsTranslator.translateField(filter.field);
                 const firestoreOperator = criteria_to_firestore_symbols_translator_1.CriteriaToFirestoreSymbolsTranslator.translateOperator(filter.operator);
                 const firestoreValue = criteria_to_firestore_symbols_translator_1.CriteriaToFirestoreSymbolsTranslator.translateValue(filter.value);
                 queryRef = queryRef.where(firestoreField, firestoreOperator, firestoreValue);

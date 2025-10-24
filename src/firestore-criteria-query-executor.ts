@@ -5,18 +5,16 @@ import {
   QuerySnapshot,
 } from "firebase-admin/firestore";
 import { geohashQueryBounds, distanceBetween } from "geofire-common";
-import { Criteria, Order } from "@schorts/shared-kernel";
+import { Criteria } from "@schorts/shared-kernel";
 
 import { CriteriaToFirestoreSymbolsTranslator } from "./criteria-to-firestore-symbols-translator";
 
 export class FirestoreCriteriaQueryExecutor {
   static async execute(collection: CollectionReference, criteria: Criteria): Promise<QuerySnapshot> {
-    const geoFilterEntry = Object.entries(criteria.filters).find(
-      ([_, filter]) => filter.operator === "GEO_RADIUS"
-    );
+    const geoFilter = criteria.filters.find(f => f.operator === "GEO_RADIUS");
 
-    if (geoFilterEntry) {
-      const [geoField, geoFilter] = geoFilterEntry;
+    if (geoFilter) {
+      const geoField = geoFilter.field;
       const { center, radiusInM } = geoFilter.value;
       const bounds = geohashQueryBounds(center, radiusInM);
       const promises: Promise<QuerySnapshot>[] = [];
@@ -24,10 +22,10 @@ export class FirestoreCriteriaQueryExecutor {
       for (const b of bounds) {
         let queryRef: Query = collection;
 
-        for (const [field, filter] of Object.entries(criteria.filters)) {
-          if (field === geoField) continue;
+        for (const filter of criteria.filters) {
+          if (filter.field === geoField) continue;
 
-          const firestoreField = CriteriaToFirestoreSymbolsTranslator.translateField(field);
+          const firestoreField = CriteriaToFirestoreSymbolsTranslator.translateField(filter.field);
           const firestoreOperator = CriteriaToFirestoreSymbolsTranslator.translateOperator(filter.operator);
           const firestoreValue = CriteriaToFirestoreSymbolsTranslator.translateValue(filter.value);
 
@@ -78,9 +76,8 @@ export class FirestoreCriteriaQueryExecutor {
     } else {
       let queryRef: Query = collection;
 
-      for (const field in criteria.filters) {
-        const filter = criteria.filters[field]!;
-        const firestoreField = CriteriaToFirestoreSymbolsTranslator.translateField(field);
+      for (const filter of criteria.filters) {
+        const firestoreField = CriteriaToFirestoreSymbolsTranslator.translateField(filter.field);
         const firestoreOperator = CriteriaToFirestoreSymbolsTranslator.translateOperator(filter.operator);
         const firestoreValue = CriteriaToFirestoreSymbolsTranslator.translateValue(filter.value);
 
@@ -106,4 +103,3 @@ export class FirestoreCriteriaQueryExecutor {
     }
   }
 }
-
