@@ -1,8 +1,4 @@
-import {
-  CollectionReference,
-  DocumentData,
-  DocumentSnapshot,
-} from "firebase-admin/firestore";
+import { CollectionReference } from "firebase-admin/firestore";
 import {
   DAO,
   BaseModel,
@@ -15,6 +11,7 @@ import { FirestoreCriteriaQueryExecutor } from "./firestore-criteria-query-execu
 import { FirestoreEntityFactory } from "./firestore-entity-factory";
 import { FirestoreUnitOfWork } from "./firestore-unit-of-work";
 import { EntityFirestoreFactory } from "./entity-firestore-factory";
+import { DocAlreadyExists } from "./exceptions";
 
 export abstract class FirestoreDAO<
   Model extends BaseModel,
@@ -70,8 +67,14 @@ export abstract class FirestoreDAO<
 
   async create(entity: Entity, uow?: FirestoreUnitOfWork): Promise<Entity> {
     const docRef = this.collection.doc(
-      typeof entity.id.value === "string" ? entity.id.value : entity.id.value!.toString()
+      typeof entity.id.value === "string" ? entity.id.value : entity.id.value!.toString(),
     );
+    const docSnap = await docRef.get();
+
+    if (docSnap.exists) {
+      throw new DocAlreadyExists();
+    }
+
     const data = EntityFirestoreFactory.fromEntity(entity);
 
     if (uow) {
