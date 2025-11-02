@@ -14,11 +14,13 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.FirebaseAuthError = exports.getAuth = exports.RegisterEntity = exports.EntityRegistry = exports.cert = exports.getApps = exports.initializeApp = exports.Firestore = exports.getFirestore = exports.EntityFirestoreFactory = exports.PrimitiveTypesToFirestoreFormatter = exports.FirestoreEntityFactory = exports.CriteriaToFirestoreSymbolsTranslator = exports.FirestoreTypesToPrimitivesFormatter = exports.FirestoreBatchUnitOfWork = exports.FirestoreDAO = void 0;
+exports.FirebaseAuthError = exports.getAuth = exports.RegisterEntity = exports.EntityRegistry = exports.cert = exports.getApps = exports.initializeApp = exports.Firestore = exports.getFirestore = exports.EntityFirestoreFactory = exports.PrimitiveTypesToFirestoreFormatter = exports.FirestoreEntityFactory = exports.CriteriaToFirestoreSymbolsTranslator = exports.FirestoreTypesToPrimitivesFormatter = exports.FirestoreTransactionUnitOfWork = exports.FirestoreBatchUnitOfWork = exports.FirestoreDAO = void 0;
 var firestore_dao_1 = require("./firestore-dao");
 Object.defineProperty(exports, "FirestoreDAO", { enumerable: true, get: function () { return firestore_dao_1.FirestoreDAO; } });
 var firestore_batch_unit_of_work_1 = require("./firestore-batch-unit-of-work");
 Object.defineProperty(exports, "FirestoreBatchUnitOfWork", { enumerable: true, get: function () { return firestore_batch_unit_of_work_1.FirestoreBatchUnitOfWork; } });
+var firestore_transaction_unit_of_work_1 = require("./firestore-transaction-unit-of-work");
+Object.defineProperty(exports, "FirestoreTransactionUnitOfWork", { enumerable: true, get: function () { return firestore_transaction_unit_of_work_1.FirestoreTransactionUnitOfWork; } });
 var firestore_types_to_primitives_formatter_1 = require("./firestore-types-to-primitives-formatter");
 Object.defineProperty(exports, "FirestoreTypesToPrimitivesFormatter", { enumerable: true, get: function () { return firestore_types_to_primitives_formatter_1.FirestoreTypesToPrimitivesFormatter; } });
 var criteria_to_firestore_symbols_translator_1 = require("./criteria-to-firestore-symbols-translator");

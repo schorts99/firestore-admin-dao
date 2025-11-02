@@ -1,5 +1,6 @@
 export { FirestoreDAO } from "./firestore-dao";
 export { FirestoreBatchUnitOfWork } from "./firestore-batch-unit-of-work";
+export { FirestoreTransactionUnitOfWork } from "./firestore-transaction-unit-of-work";
 export { FirestoreTypesToPrimitivesFormatter } from "./firestore-types-to-primitives-formatter";
 export { CriteriaToFirestoreSymbolsTranslator } from "./criteria-to-firestore-symbols-translator";
 export { FirestoreEntityFactory } from "./firestore-entity-factory";
