@@ -3,7 +3,7 @@ import { UnitOfWork } from "@schorts/shared-kernel";
 
 import { TransactionNotActive } from "./exceptions";
 
-export class FirestoreUnitOfWork implements UnitOfWork {
+export class FirestoreBatchUnitOfWork implements UnitOfWork {
   private readonly firestore: Firestore;
   private batch: WriteBatch;
   private active = false;

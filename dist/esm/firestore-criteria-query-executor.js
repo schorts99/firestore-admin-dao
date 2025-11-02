@@ -3,8 +3,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.FirestoreCriteriaQueryExecutor = void 0;
 const geofire_common_1 = require("geofire-common");
 const criteria_to_firestore_symbols_translator_1 = require("./criteria-to-firestore-symbols-translator");
+const firestore_transaction_unit_of_work_1 = require("./firestore-transaction-unit-of-work");
 class FirestoreCriteriaQueryExecutor {
-    static async execute(collection, criteria) {
+    static async execute(collection, criteria, uow) {
         const geoFilter = criteria.filters.find(f => f.operator === "GEO_RADIUS");
         if (geoFilter) {
             const geoField = geoFilter.field;
@@ -34,7 +35,12 @@ class FirestoreCriteriaQueryExecutor {
                 if (criteria.limit) {
                     queryRef = queryRef.limit(criteria.limit);
                 }
-                promises.push(queryRef.get());
+                if (uow && uow instanceof firestore_transaction_unit_of_work_1.FirestoreTransactionUnitOfWork) {
+                    promises.push(uow.getQuery(queryRef));
+                }
+                else {
+                    promises.push(queryRef.get());
+                }
             }
             const snapshots = await Promise.all(promises);
             const allDocs = snapshots.flatMap((snap) => snap.docs);
@@ -74,6 +80,9 @@ class FirestoreCriteriaQueryExecutor {
             }
             if (criteria.offset) {
                 queryRef = queryRef.startAfter(criteria.offset);
+            }
+            if (uow && uow instanceof firestore_transaction_unit_of_work_1.FirestoreTransactionUnitOfWork) {
+                return uow.getQuery(queryRef);
             }
             return queryRef.get();
         }

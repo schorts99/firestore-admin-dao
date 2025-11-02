@@ -8,9 +8,15 @@ import { geohashQueryBounds, distanceBetween } from "geofire-common";
 import { Criteria } from "@schorts/shared-kernel";
 
 import { CriteriaToFirestoreSymbolsTranslator } from "./criteria-to-firestore-symbols-translator";
+import { FirestoreBatchUnitOfWork } from "./firestore-batch-unit-of-work";
+import { FirestoreTransactionUnitOfWork } from "./firestore-transaction-unit-of-work";
 
 export class FirestoreCriteriaQueryExecutor {
-  static async execute(collection: CollectionReference, criteria: Criteria): Promise<QuerySnapshot> {
+  static async execute(
+    collection: CollectionReference,
+    criteria: Criteria,
+    uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork,
+  ): Promise<QuerySnapshot> {
     const geoFilter = criteria.filters.find(f => f.operator === "GEO_RADIUS");
 
     if (geoFilter) {
@@ -48,7 +54,11 @@ export class FirestoreCriteriaQueryExecutor {
           queryRef = queryRef.limit(criteria.limit);
         }
 
-        promises.push(queryRef.get());
+        if (uow && uow instanceof FirestoreTransactionUnitOfWork) {
+          promises.push(uow.getQuery(queryRef));
+        } else {
+          promises.push(queryRef.get());
+        }
       }
 
       const snapshots = await Promise.all(promises);
@@ -99,7 +109,11 @@ export class FirestoreCriteriaQueryExecutor {
         queryRef = queryRef.startAfter(criteria.offset);
       }
 
-      return queryRef.get();
+      if (uow && uow instanceof FirestoreTransactionUnitOfWork) {
+        return uow.getQuery(queryRef);
+      }
+
+      return queryRef.get()
     }
   }
 }

@@ -1,7 +1,7 @@
 import { CollectionReference } from "firebase-admin/firestore";
 import {
   DAO,
-  BaseModel,
+  Model,
   ValueObject,
   Entity as BaseEntity,
   Criteria,
@@ -9,14 +9,15 @@ import {
 
 import { FirestoreCriteriaQueryExecutor } from "./firestore-criteria-query-executor";
 import { FirestoreEntityFactory } from "./firestore-entity-factory";
-import { FirestoreUnitOfWork } from "./firestore-unit-of-work";
+import { FirestoreBatchUnitOfWork } from "./firestore-batch-unit-of-work";
+import { FirestoreTransactionUnitOfWork } from "./firestore-transaction-unit-of-work";
 import { EntityFirestoreFactory } from "./entity-firestore-factory";
 import { DocAlreadyExists } from "./exceptions";
 
 export abstract class FirestoreDAO<
-  Model extends BaseModel,
-  Entity extends BaseEntity<ValueObject, Model>
-> implements DAO<Model, Entity> {
+  M extends Model,
+  Entity extends BaseEntity<ValueObject, M>
+> implements DAO<M, Entity> {
   private readonly collection: CollectionReference;
   private readonly firestoreEntityFactory: FirestoreEntityFactory<Entity>;
 
@@ -25,17 +26,23 @@ export abstract class FirestoreDAO<
     this.firestoreEntityFactory = new FirestoreEntityFactory(collection.path);
   }
 
-  async findByID(id: Entity["id"]["value"]): Promise<Entity | null> {
+  async findByID(id: Entity["id"]["value"], uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork): Promise<Entity | null> {
     const docRef = this.collection.doc(typeof id === "string" ? id : id!.toString());
-    const docSnap = await docRef.get();
+    let docSnap;
+
+    if (uow && uow instanceof FirestoreTransactionUnitOfWork) {
+      docSnap = await uow.get(docRef);
+    } else {
+      docSnap = await docRef.get();
+    }
 
     return this.firestoreEntityFactory.fromSnapshot(docSnap);
   }
 
-  async findOneBy(criteria: Criteria): Promise<Entity | null> {
+  async findOneBy(criteria: Criteria, uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork): Promise<Entity | null> {
     criteria.limitResults(1);
 
-    const querySnap = await FirestoreCriteriaQueryExecutor.execute(this.collection, criteria);
+    const querySnap = await FirestoreCriteriaQueryExecutor.execute(this.collection, criteria, uow);
 
     if (querySnap.empty) return null;
 
@@ -43,29 +50,36 @@ export abstract class FirestoreDAO<
     return this.firestoreEntityFactory.fromSnapshot(docSnap);
   }
 
-  async getAll(): Promise<Entity[]> {
-    const querySnap = await this.collection.get();
+  async getAll(uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork): Promise<Entity[]> {
+    const query = this.collection.limit(1000);
+    let querySnap;
+
+    if (uow && uow instanceof FirestoreTransactionUnitOfWork) {
+      querySnap = await uow.getQuery(query);
+    } else {
+      querySnap = await this.collection.get();
+    }
 
     if (querySnap.empty) return [];
 
     return this.firestoreEntityFactory.fromSnapshots(querySnap.docs);
   }
 
-  async search(criteria: Criteria): Promise<Entity[]> {
-    const querySnap = await FirestoreCriteriaQueryExecutor.execute(this.collection, criteria);
+  async search(criteria: Criteria, uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork): Promise<Entity[]> {
+    const querySnap = await FirestoreCriteriaQueryExecutor.execute(this.collection, criteria, uow);
 
     if (querySnap.empty) return [];
 
     return this.firestoreEntityFactory.fromSnapshots(querySnap.docs);
   }
 
-  async countBy(criteria: Criteria): Promise<number> {
-    const querySnap = await FirestoreCriteriaQueryExecutor.execute(this.collection, criteria);
+  async countBy(criteria: Criteria, uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork): Promise<number> {
+    const querySnap = await FirestoreCriteriaQueryExecutor.execute(this.collection, criteria, uow);
 
     return querySnap.size;
   }
 
-  async create(entity: Entity, uow?: FirestoreUnitOfWork): Promise<Entity> {
+  async create(entity: Entity, uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork): Promise<Entity> {
     const docRef = this.collection.doc(
       typeof entity.id.value === "string" ? entity.id.value : entity.id.value!.toString(),
     );
@@ -86,7 +100,7 @@ export abstract class FirestoreDAO<
     return entity;
   }
 
-  async update(entity: Entity, uow?: FirestoreUnitOfWork): Promise<Entity> {
+  async update(entity: Entity, uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork): Promise<Entity> {
     const docRef = this.collection.doc(
       typeof entity.id.value === "string" ? entity.id.value : entity.id.value!.toString()
     );
@@ -101,7 +115,7 @@ export abstract class FirestoreDAO<
     return entity;
   }
 
-  async delete(entity: Entity, uow?: FirestoreUnitOfWork): Promise<Entity> {
+  async delete(entity: Entity, uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork): Promise<Entity> {
     const docRef = this.collection.doc(
       typeof entity.id.value === "string" ? entity.id.value : entity.id.value!.toString()
     );
