@@ -57,7 +57,13 @@ class FirestoreDAO {
     }
     async create(entity, uow) {
         const docRef = this.collection.doc(typeof entity.id.value === "string" ? entity.id.value : entity.id.value.toString());
-        const docSnap = await docRef.get();
+        let docSnap;
+        if (uow && uow instanceof firestore_transaction_unit_of_work_1.FirestoreTransactionUnitOfWork) {
+            docSnap = await uow.get(docRef);
+        }
+        else {
+            docSnap = await docRef.get();
+        }
         if (docSnap.exists) {
             throw new exceptions_1.DocAlreadyExists();
         }

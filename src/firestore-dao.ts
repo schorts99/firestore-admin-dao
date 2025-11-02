@@ -83,7 +83,13 @@ export abstract class FirestoreDAO<
     const docRef = this.collection.doc(
       typeof entity.id.value === "string" ? entity.id.value : entity.id.value!.toString(),
     );
-    const docSnap = await docRef.get();
+    let docSnap;
+
+    if (uow && uow instanceof FirestoreTransactionUnitOfWork) {
+      docSnap = await uow.get(docRef);
+    } else {
+      docSnap = await docRef.get();
+    }
 
     if (docSnap.exists) {
       throw new DocAlreadyExists();
