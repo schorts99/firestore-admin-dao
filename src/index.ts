@@ -6,6 +6,7 @@ export { CriteriaToFirestoreSymbolsTranslator } from "./criteria-to-firestore-sy
 export { FirestoreEntityFactory } from "./firestore-entity-factory";
 export { PrimitiveTypesToFirestoreFormatter } from "./primitive-types-to-firestore-formatter";
 export { EntityFirestoreFactory } from "./entity-firestore-factory";
+export { FirestoreUnitOfWorkRunner } from "./firestore-unit-of-work-runner";
 export * from "./exceptions";
 
 export { getFirestore, Firestore } from "firebase-admin/firestore";
