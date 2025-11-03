@@ -18,7 +18,8 @@ class PrimitiveTypesToFirestoreFormatter {
                 continue;
             const value = entity[key];
             if (value instanceof shared_kernel_1.CoordinatesValue) {
-                const snakeKey = shared_kernel_1.PascalCamelToSnake.format(key);
+                const formattedKey = key.startsWith('_') ? key.substring(1) : key;
+                const snakeKey = shared_kernel_1.PascalCamelToSnake.format(formattedKey);
                 geoData[`${snakeKey}_geohash`] = (0, geofire_common_1.geohashForLocation)([
                     value.value.latitude,
                     value.value.longitude,
@@ -34,11 +35,13 @@ class PrimitiveTypesToFirestoreFormatter {
                 continue;
             const value = entity[key];
             if (value instanceof Date) {
-                const snakeKey = shared_kernel_1.PascalCamelToSnake.format(key);
+                const formattedKey = key.startsWith('_') ? key.substring(1) : key;
+                const snakeKey = shared_kernel_1.PascalCamelToSnake.format(formattedKey);
                 formattedDates[snakeKey] = firestore_1.Timestamp.fromDate(value);
             }
             else if (value instanceof shared_kernel_1.DateValue && value.value) {
-                const snakeKey = shared_kernel_1.PascalCamelToSnake.format(key);
+                const formattedKey = key.startsWith('_') ? key.substring(1) : key;
+                const snakeKey = shared_kernel_1.PascalCamelToSnake.format(formattedKey);
                 formattedDates[snakeKey] = firestore_1.Timestamp.fromDate(value.value);
             }
         }

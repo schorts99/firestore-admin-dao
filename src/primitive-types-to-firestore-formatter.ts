@@ -18,7 +18,8 @@ export class PrimitiveTypesToFirestoreFormatter {
 
       const value = (entity as any)[key];
       if (value instanceof CoordinatesValue) {
-        const snakeKey = PascalCamelToSnake.format(key);
+        const formattedKey = key.startsWith('_') ? key.substring(1) : key;
+        const snakeKey = PascalCamelToSnake.format(formattedKey);
         geoData[`${snakeKey}_geohash`] = geohashForLocation([
           value.value.latitude,
           value.value.longitude,
@@ -38,10 +39,12 @@ export class PrimitiveTypesToFirestoreFormatter {
       const value = (entity as any)[key];
 
       if (value instanceof Date) {
-        const snakeKey = PascalCamelToSnake.format(key);
+        const formattedKey = key.startsWith('_') ? key.substring(1) : key;
+        const snakeKey = PascalCamelToSnake.format(formattedKey);
         formattedDates[snakeKey] = Timestamp.fromDate(value);
       } else if (value instanceof DateValue && value.value) {
-        const snakeKey = PascalCamelToSnake.format(key);
+        const formattedKey = key.startsWith('_') ? key.substring(1) : key;
+        const snakeKey = PascalCamelToSnake.format(formattedKey);
         formattedDates[snakeKey] = Timestamp.fromDate(value.value);
       }
     }
