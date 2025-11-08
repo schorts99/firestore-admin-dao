@@ -1,70 +1,146 @@
-# 🔥 Firestore Admin DAO
 
-This module provides a type-safe, domain-driven abstraction over Firestore persistence. It integrates tightly with the `Model`, `Entity`, `Criteria` and `UnitOfWork` constructs from the [Shared Kernel](https://www.npmjs.com/package/@schorts/shared-kernel), enabling expressive, consistent, and testable data access across bounded contexts.
+# @schorts/firestore-admin-dao
 
-## 🚀 Installation
+[![npm version](https://badge.fury.io/js/%40schorts%2Ffirestore-admin-dao.svg)](https://badge.fury.io/js/%40schorts%2Ffirestore-admin-dao)
+
+This module provides a type-safe, domain-driven abstraction over Firestore persistence. It integrates tightly with the `Model`, `Entity`, `Criteria` and `UnitOfWork` constructs from `@schorts/shared-kernel`, enabling expressive, consistent, and testable data access.
+
+## Installation
+
+This package has a peer dependency on `@schorts/shared-kernel`.
 
 ```bash
-npm install --save @schorts/firestore-admin-dao
+npm install @schorts/firestore-admin-dao @schorts/shared-kernel
 ```
 
-## 🧩 Purpose
+## Usage
 
-Firestore DAOs encapsulate all persistence logic for domain entities, including:
+Here's a complete example of how to use the `FirestoreDAO` to interact with a collection.
 
-- 🔍 Querying by ID, criteria, or full collection.
-- 🧠 Translating domain filters into Firestore constraints.
-- 🧼 Formatting primitives for Firestore compatibility.
-- 🔁 Coordinating writes via `FirestoreUnitOfWork` for atomicity.
+### 1. Initialize Firebase Admin
 
-They are not responsible for business logic, validation, or orchestration — only persistence.
+```typescript
+import { initializeApp, getFirestore, cert, Firestore } from '@schorts/firestore-admin-dao';
 
-## 🏗️ Architecture
+// This is your Firebase service account key file
+const serviceAccount = require('./serviceAccountKey.json');
 
-Each DAO implements the following shared kernel interfaces:
+const app = initializeApp({
+  credential: cert(serviceAccount),
+});
 
-- `Model<Entity>` - defines the contract for persistence operations.
-- `Entity` - domain object with identity and behavior.
-- `UnitOfWork` - optional batching mechanism for transactional consistency.
-
-## 🧪 Example Usage
-
-```ts
-import { initializeApp, getFirestore, EntityRegistry } from "@schorts/firestore-dao";
-
-// You need to use the internal firebase/firestore packages and register you entity via EntityRegistry
-
-EntityRegistry.register("users", User);
-
-const user = new User({ id: "abc123", name: "Alice" });
-
-await userDAO.create(user); // direct write
-
-const uow = new FirestoreUnitOfWork(firestore);
-await userDAO.create(user, uow); // batched write
-await uow.commit();
+const firestore = getFirestore(app);
 ```
 
-```ts
-const found = await userDAO.findByID("abc123");
-const results = await userDAO.search(Criteria.where("status", "EQUAL", "active"));
+### 2. Define your Entity
+
+The `Entity` class is responsible for mapping between its properties and a plain object for persistence. It must implement `toPrimitives()` and a static `fromPrimitives()`. Note that `BaseModel` and `Entity` are imported from `@schorts/shared-kernel`.
+
+```typescript
+import { EntityRegistry } from "@schorts/firestore-admin-dao";
+import { Entity as BaseEntity, Model as BaseModel, UUIDValue } from "@schorts/shared-kernel";
+
+// This interface is a plain object representation of your entity.
+interface MyEntityModel extends BaseModel {
+  name: string;
+  aNumber: number;
+}
+
+// This is your domain entity.
+class MyEntity extends BaseEntity<UUIDValue, MyEntityModel> {
+  constructor(
+    id: UUIDValue,
+    public readonly name: string,
+    public readonly aNumber: number,
+  ) {
+    super(id);
+  }
+
+  // Converts the entity to a plain object for Firestore.
+  toPrimitives(): MyEntityModel {
+    return {
+      id: this.id.value,
+      name: this.name,
+      aNumber: this.aNumber,
+    };
+  }
+
+  // Creates an entity instance from a plain object retrieved from Firestore.
+  static fromPrimitives<Model extends BaseModel>(model: Model): MyEntity {
+    return new MyEntity(
+      new UUIDValue(model.id),
+      model.name,
+      model.aNumber,
+    );
+  }
+}
+
+// Register the entity with a collection name. This is crucial!
+EntityRegistry.register("my-entities", MyEntity);
+
 ```
 
-### Supports:
+### 3. Create a concrete DAO class
 
-- Standard filters (`EQUAL`, `IN`, `GREATER_THAN`, etc.)
-- Geo-radius queries with post-filtering via `distanceBetween`.
-- Ordering, limits, and pagination (`startAfter`).
+`FirestoreDAO` is abstract. Create a concrete class for your entity that extends it. Its constructor must pass a Firestore `CollectionReference` to the `super()` call.
 
-## 🚧 Future Extensions
+```typescript
+import { FirestoreDAO } from '@schorts/firestore-admin-dao';
 
-- Soft deletes via `status: "deleted"`.
+class MyEntityDAO extends FirestoreDAO<MyEntityModel, MyEntity> {
+  constructor(firestore: Firestore) {
+    // The string passed to 'collection' is the name of your Firestore collection
+    super(firestore.collection("my-entities"));
+  }
+}
+```
 
-## 🧠 Philosophy
+### 4. Use the DAO for CRUD Operations
 
-This layer reflects a commitment to:
+Now you can use your DAO to interact with Firestore. The `Criteria` class uses a fluent interface (builder pattern) to construct queries.
 
-- Domain-driven design.
-- Type safety and semantic clarity.
-- Separation of concerns.
-- Scalable, testable architecture.
+```typescript
+import { Criteria, Operator, Direction, UUIDValue } from '@schorts/shared-kernel';
+
+async function main() {
+  const dao = new MyEntityDAO(firestore);
+
+  // Create a new entity
+  const entityId = UUIDValue.generate();
+  const entity = new MyEntity(entityId, 'My Awesome Entity', 42);
+  await dao.create(entity);
+  console.log('Entity created with id:', entity.id.value);
+
+  // Find an entity using the Criteria builder
+  const criteria = new Criteria()
+    .where('name', Operator.EQUAL, 'My Awesome Entity')
+    .orderBy('aNumber', Direction.DESC)
+    .limitResults(1);
+
+  const foundEntity = await dao.findOneBy(criteria);
+  console.log('Entity found:', foundEntity?.toPrimitives());
+
+  // Update the entity
+  if (foundEntity) {
+    const updatedEntity = new MyEntity(foundEntity.id, 'My Updated Entity', 100);
+    await dao.update(updatedEntity);
+    console.log('Entity updated:', updatedEntity.toPrimitives());
+  } 
+
+  // Delete the entity
+  if (foundEntity) {
+    await dao.delete(foundEntity);
+    console.log('Entity deleted');
+  }
+}
+
+main();
+```
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a pull request or open an issue.
+
+## License
+
+This project is licensed under the LGPL-3.0-or-later License.
