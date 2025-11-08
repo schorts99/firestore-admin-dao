@@ -17,6 +17,7 @@ export class PrimitiveTypesToFirestoreFormatter {
       if (!Object.prototype.hasOwnProperty.call(entity, key)) continue;
 
       const value = (entity as any)[key];
+
       if (value instanceof CoordinatesValue) {
         const formattedKey = key.startsWith('_') ? key.substring(1) : key;
         const snakeKey = PascalCamelToSnake.format(formattedKey);
