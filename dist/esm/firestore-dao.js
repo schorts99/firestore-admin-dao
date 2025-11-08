@@ -9,7 +9,8 @@ const exceptions_1 = require("./exceptions");
 class FirestoreDAO {
     collection;
     firestoreEntityFactory;
-    constructor(collection) {
+    logger;
+    constructor(collection, logger) {
         this.collection = collection;
         this.firestoreEntityFactory = new firestore_entity_factory_1.FirestoreEntityFactory(collection.path);
     }

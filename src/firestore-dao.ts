@@ -5,6 +5,7 @@ import {
   ValueObject,
   Entity as BaseEntity,
   Criteria,
+  Logger,
 } from "@schorts/shared-kernel";
 
 import { FirestoreCriteriaQueryExecutor } from "./firestore-criteria-query-executor";
@@ -20,8 +21,9 @@ export abstract class FirestoreDAO<
 > implements DAO<M, Entity> {
   private readonly collection: CollectionReference;
   private readonly firestoreEntityFactory: FirestoreEntityFactory<Entity>;
+  private readonly logger: Logger | undefined;
 
-  constructor(collection: CollectionReference) {
+  constructor(collection: CollectionReference, logger?: Logger) {
     this.collection = collection;
     this.firestoreEntityFactory = new FirestoreEntityFactory(collection.path);
   }
