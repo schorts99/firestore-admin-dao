@@ -200,13 +200,31 @@ class FirestoreDAO {
     }
     async update(entity, uow) {
         const docRef = this.collection.doc(typeof entity.id.value === "string" ? entity.id.value : entity.id.value.toString());
+        this.logger?.debug({
+            status: "STARTED",
+            class: "FirestoreDAO",
+            method: "update",
+            collectionName: this.collection.path,
+        }, { entity, uow, docRef });
         const data = entity_firestore_factory_1.EntityFirestoreFactory.fromEntity(entity);
+        this.logger?.debug({
+            status: "IN_PROGRESS",
+            class: "FirestoreDAO",
+            method: "update",
+            collectionName: this.collection.path,
+        }, { data });
         if (uow) {
             uow.update(docRef, data);
         }
         else {
             await docRef.update(data);
         }
+        this.logger?.debug({
+            status: "COMPLETED",
+            class: "FirestoreDAO",
+            method: "update",
+            collectionName: this.collection.path,
+        });
         return entity;
     }
     async delete(entity, uow) {
