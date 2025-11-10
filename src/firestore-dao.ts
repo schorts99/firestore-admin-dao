@@ -26,6 +26,7 @@ export abstract class FirestoreDAO<
   constructor(collection: CollectionReference, logger?: Logger) {
     this.collection = collection;
     this.firestoreEntityFactory = new FirestoreEntityFactory(collection.path);
+    this.logger = logger;
   }
 
   async findByID(id: Entity["id"]["value"], uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork): Promise<Entity | null> {
@@ -52,18 +53,50 @@ export abstract class FirestoreDAO<
       collectionName: this.collection.path,
     }, { docSnap });
 
-    return this.firestoreEntityFactory.fromSnapshot(docSnap);
+    const entity = this.firestoreEntityFactory.fromSnapshot(docSnap);
+
+    this.logger?.debug({
+      status: "COMPLETED",
+      class: "FirestoreDAO",
+      method: "findByID",
+      collectionName: this.collection.path,
+    }, { entity });
+
+    return entity;
   }
 
   async findOneBy(criteria: Criteria, uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork): Promise<Entity | null> {
     criteria.limitResults(1);
 
+    this.logger?.debug({
+      status: "STARTED",
+      class: "FirestoreDAO",
+      method: "findOneBy",
+      collectionName: this.collection.path,
+    }, { criteria, uow });
+
     const querySnap = await FirestoreCriteriaQueryExecutor.execute(this.collection, criteria, uow);
+
+    this.logger?.debug({
+      status: "IN_PROGRESS",
+      class: "FirestoreDAO",
+      method: "findOneBy",
+      collectionName: this.collection.path,
+    }, { querySnap });
 
     if (querySnap.empty) return null;
 
     const docSnap = querySnap.docs[0]!;
-    return this.firestoreEntityFactory.fromSnapshot(docSnap);
+    const entity = this.firestoreEntityFactory.fromSnapshot(docSnap);;
+
+    this.logger?.debug({
+      status: "COMPLETED",
+      class: "FirestoreDAO",
+      method: "findOneBy",
+      collectionName: this.collection.path,
+    }, { entity });
+
+    return entity;
   }
 
   async getAll(uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork): Promise<Entity[]> {

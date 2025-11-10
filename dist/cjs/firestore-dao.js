@@ -13,6 +13,7 @@ class FirestoreDAO {
     constructor(collection, logger) {
         this.collection = collection;
         this.firestoreEntityFactory = new firestore_entity_factory_1.FirestoreEntityFactory(collection.path);
+        this.logger = logger;
     }
     async findByID(id, uow) {
         const docRef = this.collection.doc(typeof id === "string" ? id : id.toString());
@@ -35,15 +36,42 @@ class FirestoreDAO {
             method: "findByID",
             collectionName: this.collection.path,
         }, { docSnap });
-        return this.firestoreEntityFactory.fromSnapshot(docSnap);
+        const entity = this.firestoreEntityFactory.fromSnapshot(docSnap);
+        this.logger?.debug({
+            status: "COMPLETED",
+            class: "FirestoreDAO",
+            method: "findByID",
+            collectionName: this.collection.path,
+        }, { entity });
+        return entity;
     }
     async findOneBy(criteria, uow) {
         criteria.limitResults(1);
+        this.logger?.debug({
+            status: "STARTED",
+            class: "FirestoreDAO",
+            method: "findOneBy",
+            collectionName: this.collection.path,
+        }, { criteria, uow });
         const querySnap = await firestore_criteria_query_executor_1.FirestoreCriteriaQueryExecutor.execute(this.collection, criteria, uow);
+        this.logger?.debug({
+            status: "IN_PROGRESS",
+            class: "FirestoreDAO",
+            method: "findOneBy",
+            collectionName: this.collection.path,
+        }, { querySnap });
         if (querySnap.empty)
             return null;
         const docSnap = querySnap.docs[0];
-        return this.firestoreEntityFactory.fromSnapshot(docSnap);
+        const entity = this.firestoreEntityFactory.fromSnapshot(docSnap);
+        ;
+        this.logger?.debug({
+            status: "COMPLETED",
+            class: "FirestoreDAO",
+            method: "findOneBy",
+            collectionName: this.collection.path,
+        }, { entity });
+        return entity;
     }
     async getAll(uow) {
         const query = this.collection.limit(1000);
