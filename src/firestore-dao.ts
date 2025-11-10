@@ -32,11 +32,25 @@ export abstract class FirestoreDAO<
     const docRef = this.collection.doc(typeof id === "string" ? id : id!.toString());
     let docSnap;
 
+    this.logger?.debug({
+      status: "STARTED",
+      class: "FirestoreDAO",
+      method: "findByID",
+      collectionName: this.collection.path,
+    }, { docRef, uow });
+
     if (uow && uow instanceof FirestoreTransactionUnitOfWork) {
       docSnap = await uow.get(docRef);
     } else {
       docSnap = await docRef.get();
     }
+
+    this.logger?.debug({
+      status: "IN_PROGRESS",
+      class: "FirestoreDAO",
+      method: "findByID",
+      collectionName: this.collection.path,
+    }, { docSnap });
 
     return this.firestoreEntityFactory.fromSnapshot(docSnap);
   }

@@ -17,12 +17,24 @@ class FirestoreDAO {
     async findByID(id, uow) {
         const docRef = this.collection.doc(typeof id === "string" ? id : id.toString());
         let docSnap;
+        this.logger?.debug({
+            status: "STARTED",
+            class: "FirestoreDAO",
+            method: "findByID",
+            collectionName: this.collection.path,
+        }, { docRef, uow });
         if (uow && uow instanceof firestore_transaction_unit_of_work_1.FirestoreTransactionUnitOfWork) {
             docSnap = await uow.get(docRef);
         }
         else {
             docSnap = await docRef.get();
         }
+        this.logger?.debug({
+            status: "IN_PROGRESS",
+            class: "FirestoreDAO",
+            method: "findByID",
+            collectionName: this.collection.path,
+        }, { docSnap });
         return this.firestoreEntityFactory.fromSnapshot(docSnap);
     }
     async findOneBy(criteria, uow) {
