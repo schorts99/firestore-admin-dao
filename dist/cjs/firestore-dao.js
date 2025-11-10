@@ -149,22 +149,53 @@ class FirestoreDAO {
     async create(entity, uow) {
         const docRef = this.collection.doc(typeof entity.id.value === "string" ? entity.id.value : entity.id.value.toString());
         let docSnap;
+        this.logger?.debug({
+            status: "STARTED",
+            class: "FirestoreDAO",
+            method: "create",
+            collectionName: this.collection.path,
+        }, { entity, uow, docRef });
         if (uow && uow instanceof firestore_transaction_unit_of_work_1.FirestoreTransactionUnitOfWork) {
             docSnap = await uow.get(docRef);
         }
         else {
             docSnap = await docRef.get();
         }
+        this.logger?.debug({
+            status: "IN_PROGRESS",
+            class: "FirestoreDAO",
+            method: "create",
+            collectionName: this.collection.path,
+        }, { docSnap });
         if (docSnap.exists) {
-            throw new exceptions_1.DocAlreadyExists();
+            const error = new exceptions_1.DocAlreadyExists();
+            this.logger?.error({
+                status: "ERROR",
+                class: "FirestoreDAO",
+                method: "create",
+                collectionName: this.collection.path,
+            }, { error });
+            throw error;
         }
         const data = entity_firestore_factory_1.EntityFirestoreFactory.fromEntity(entity);
+        this.logger?.debug({
+            status: "IN_PROGRESS",
+            class: "FirestoreDAO",
+            method: "create",
+            collectionName: this.collection.path,
+        }, { data });
         if (uow) {
             uow.set(docRef, data);
         }
         else {
             await docRef.set(data);
         }
+        this.logger?.debug({
+            status: "COMPLETED",
+            class: "FirestoreDAO",
+            method: "create",
+            collectionName: this.collection.path,
+        });
         return entity;
     }
     async update(entity, uow) {

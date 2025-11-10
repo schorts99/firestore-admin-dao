@@ -194,23 +194,59 @@ export abstract class FirestoreDAO<
     );
     let docSnap;
 
+    this.logger?.debug({
+      status: "STARTED",
+      class: "FirestoreDAO",
+      method: "create",
+      collectionName: this.collection.path,
+    }, { entity, uow, docRef });
+
     if (uow && uow instanceof FirestoreTransactionUnitOfWork) {
       docSnap = await uow.get(docRef);
     } else {
       docSnap = await docRef.get();
     }
 
+    this.logger?.debug({
+      status: "IN_PROGRESS",
+      class: "FirestoreDAO",
+      method: "create",
+      collectionName: this.collection.path,
+    }, { docSnap });
+
     if (docSnap.exists) {
-      throw new DocAlreadyExists();
+      const error = new DocAlreadyExists();
+
+      this.logger?.error({
+        status: "ERROR",
+        class: "FirestoreDAO",
+        method: "create",
+        collectionName: this.collection.path,
+      }, { error });
+      throw error;
     }
 
     const data = EntityFirestoreFactory.fromEntity(entity);
+
+    this.logger?.debug({
+      status: "IN_PROGRESS",
+      class: "FirestoreDAO",
+      method: "create",
+      collectionName: this.collection.path,
+    }, { data });
 
     if (uow) {
       uow.set(docRef, data);
     } else {
       await docRef.set(data);
     }
+
+    this.logger?.debug({
+      status: "COMPLETED",
+      class: "FirestoreDAO",
+      method: "create",
+      collectionName: this.collection.path,
+    });
 
     return entity;
   }
