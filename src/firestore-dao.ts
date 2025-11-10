@@ -103,15 +103,38 @@ export abstract class FirestoreDAO<
     const query = this.collection.limit(1000);
     let querySnap;
 
+    this.logger?.debug({
+      status: "STARTED",
+      class: "FirestoreDAO",
+      method: "getAll",
+      collectionName: this.collection.path,
+    }, { uow });
+
     if (uow && uow instanceof FirestoreTransactionUnitOfWork) {
       querySnap = await uow.getQuery(query);
     } else {
       querySnap = await this.collection.get();
     }
 
+    this.logger?.debug({
+      status: "IN_PROGRESS",
+      class: "FirestoreDAO",
+      method: "getAll",
+      collectionName: this.collection.path,
+    }, { querySnap });
+
     if (querySnap.empty) return [];
 
-    return this.firestoreEntityFactory.fromSnapshots(querySnap.docs);
+    const entities = this.firestoreEntityFactory.fromSnapshots(querySnap.docs);
+
+    this.logger?.debug({
+      status: "COMPLETED",
+      class: "FirestoreDAO",
+      method: "getAll",
+      collectionName: this.collection.path,
+    }, { entities });
+
+    return entities;
   }
 
   async search(criteria: Criteria, uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork): Promise<Entity[]> {
