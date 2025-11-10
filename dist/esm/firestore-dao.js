@@ -131,7 +131,19 @@ class FirestoreDAO {
         return entities;
     }
     async countBy(criteria, uow) {
+        this.logger?.debug({
+            status: "STARTED",
+            class: "FirestoreDAO",
+            method: "countBy",
+            collectionName: this.collection.path,
+        }, { criteria, uow });
         const querySnap = await firestore_criteria_query_executor_1.FirestoreCriteriaQueryExecutor.execute(this.collection, criteria, uow);
+        this.logger?.debug({
+            status: "COMPLETED",
+            class: "FirestoreDAO",
+            method: "countBy",
+            collectionName: this.collection.path,
+        }, { querySnap });
         return querySnap.size;
     }
     async create(entity, uow) {
