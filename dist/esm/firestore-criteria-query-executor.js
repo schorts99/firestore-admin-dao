@@ -5,13 +5,23 @@ const geofire_common_1 = require("geofire-common");
 const criteria_to_firestore_symbols_translator_1 = require("./criteria-to-firestore-symbols-translator");
 const firestore_transaction_unit_of_work_1 = require("./firestore-transaction-unit-of-work");
 class FirestoreCriteriaQueryExecutor {
-    static async execute(collection, criteria, uow) {
+    static async execute(collection, criteria, uow, logger) {
         const geoFilter = criteria.filters.find(f => f.operator === "GEO_RADIUS");
+        logger?.debug({
+            status: "STARTED",
+            class: "FirestoreCriteriaQueryExecutor",
+            method: "execute",
+        }, { geoFilter, uow });
         if (geoFilter) {
             const geoField = geoFilter.field;
             const { center, radiusInM } = geoFilter.value;
             const bounds = (0, geofire_common_1.geohashQueryBounds)(center, radiusInM);
             const promises = [];
+            logger?.debug({
+                status: "IN_PROGRESS",
+                class: "FirestoreCriteriaQueryExecutor",
+                method: "execute",
+            }, { bounds, center, radiusInM, geoField });
             for (const b of bounds) {
                 let queryRef = collection;
                 for (const filter of criteria.filters) {
@@ -35,6 +45,11 @@ class FirestoreCriteriaQueryExecutor {
                 if (criteria.limit) {
                     queryRef = queryRef.limit(criteria.limit);
                 }
+                logger?.debug({
+                    status: "IN_PROGRESS",
+                    class: "FirestoreCriteriaQueryExecutor",
+                    method: "execute",
+                }, { queryRef });
                 if (uow && uow instanceof firestore_transaction_unit_of_work_1.FirestoreTransactionUnitOfWork) {
                     promises.push(uow.getQuery(queryRef));
                 }
@@ -45,6 +60,11 @@ class FirestoreCriteriaQueryExecutor {
             const snapshots = await Promise.all(promises);
             const allDocs = snapshots.flatMap((snap) => snap.docs);
             const uniqueDocsMap = new Map();
+            logger?.debug({
+                status: "IN_PROGRESS",
+                class: "FirestoreCriteriaQueryExecutor",
+                method: "execute",
+            }, { snapshots });
             allDocs.forEach(doc => uniqueDocsMap.set(doc.id, doc));
             const filteredDocs = Array.from(uniqueDocsMap.values()).filter((doc) => {
                 const data = doc.data();
@@ -54,6 +74,11 @@ class FirestoreCriteriaQueryExecutor {
                 const distanceInM = (0, geofire_common_1.distanceBetween)(center, [coords.latitude, coords.longitude]) * 1000;
                 return distanceInM <= radiusInM;
             });
+            logger?.debug({
+                status: "COMPLETED",
+                class: "FirestoreCriteriaQueryExecutor",
+                method: "execute",
+            }, { filteredDocs });
             return {
                 docs: filteredDocs,
                 empty: filteredDocs.length === 0,

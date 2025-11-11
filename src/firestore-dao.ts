@@ -75,7 +75,17 @@ export abstract class FirestoreDAO<
       collectionName: this.collection.path,
     }, { criteria, uow });
 
-    const querySnap = await FirestoreCriteriaQueryExecutor.execute(this.collection, criteria, uow);
+    const querySnap = await FirestoreCriteriaQueryExecutor.execute(
+      this.collection,
+      criteria,
+      uow,
+      this.logger?.child({
+        status: 'IN_PROGRESS',
+        class: 'FirestoreDAO',
+        method: 'findOneBy',
+        collectionName: this.collection.path,
+      }),
+    );
 
     this.logger?.debug({
       status: "IN_PROGRESS",
@@ -145,7 +155,17 @@ export abstract class FirestoreDAO<
       collectionName: this.collection.path,
     }, { criteria, uow });
     
-    const querySnap = await FirestoreCriteriaQueryExecutor.execute(this.collection, criteria, uow);
+    const querySnap = await FirestoreCriteriaQueryExecutor.execute(
+      this.collection,
+      criteria,
+      uow,
+      this.logger?.child({
+        status: 'IN_PROGRESS',
+        class: 'FirestoreDAO',
+        method: 'search',
+        collectionName: this.collection.path,
+      }),
+    );
 
     this.logger?.debug({
       status: "IN_PROGRESS",
@@ -176,7 +196,17 @@ export abstract class FirestoreDAO<
       collectionName: this.collection.path,
     }, { criteria, uow });
 
-    const querySnap = await FirestoreCriteriaQueryExecutor.execute(this.collection, criteria, uow);
+    const querySnap = await FirestoreCriteriaQueryExecutor.execute(
+      this.collection,
+      criteria,
+      uow,
+      this.logger?.child({
+        status: 'IN_PROGRESS',
+        class: 'FirestoreDAO',
+        method: 'countBy',
+        collectionName: this.collection.path,
+      }),
+    );
 
     this.logger?.debug({
       status: "COMPLETED",
