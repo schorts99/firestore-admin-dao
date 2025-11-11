@@ -229,12 +229,24 @@ class FirestoreDAO {
     }
     async delete(entity, uow) {
         const docRef = this.collection.doc(typeof entity.id.value === "string" ? entity.id.value : entity.id.value.toString());
+        this.logger?.debug({
+            status: "STARTED",
+            class: "FirestoreDAO",
+            method: "delete",
+            collectionName: this.collection.path,
+        }, { entity, uow, docRef });
         if (uow) {
             uow.delete(docRef);
         }
         else {
             await docRef.delete();
         }
+        this.logger?.debug({
+            status: "COMPLETED",
+            class: "FirestoreDAO",
+            method: "delete",
+            collectionName: this.collection.path,
+        });
         return entity;
     }
 }
