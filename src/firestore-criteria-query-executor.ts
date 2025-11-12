@@ -143,6 +143,12 @@ export class FirestoreCriteriaQueryExecutor {
         return uow.getQuery(queryRef);
       }
 
+      logger?.debug({
+        status: "COMPLETED",
+        class: "FirestoreCriteriaQueryExecutor",
+        method: "execute",
+      }, { queryRef });
+
       return queryRef.get()
     }
   }

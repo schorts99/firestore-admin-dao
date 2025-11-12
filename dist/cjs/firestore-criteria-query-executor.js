@@ -109,6 +109,11 @@ class FirestoreCriteriaQueryExecutor {
             if (uow && uow instanceof firestore_transaction_unit_of_work_1.FirestoreTransactionUnitOfWork) {
                 return uow.getQuery(queryRef);
             }
+            logger?.debug({
+                status: "COMPLETED",
+                class: "FirestoreCriteriaQueryExecutor",
+                method: "execute",
+            }, { queryRef });
             return queryRef.get();
         }
     }
