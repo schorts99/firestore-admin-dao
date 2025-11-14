@@ -23,7 +23,7 @@ export abstract class FirestoreDAO<
   private readonly firestoreEntityFactory: FirestoreEntityFactory<Entity>;
   private readonly logger: Logger | undefined;
 
-  constructor(collection: CollectionReference, deleteMode: DeleteMode, logger?: Logger) {
+  constructor(collection: CollectionReference, deleteMode: DeleteMode = "HARD", logger?: Logger) {
     super(deleteMode);
 
     this.collection = collection;
@@ -87,7 +87,7 @@ export abstract class FirestoreDAO<
 
   async findOneBy(criteria: Criteria, uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork): Promise<Entity | null> {
     if (this.deleteMode === "SOFT") {
-      criteria.where("is_deleted", "IN", [null, false]);
+      criteria.where("is_deleted", "EQUAL", false);
     }
 
     criteria.limitResults(1);
@@ -136,8 +136,8 @@ export abstract class FirestoreDAO<
   async getAll(uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork): Promise<Entity[]> {
     let query = this.collection.limit(1000);
 
-    if (this.deleteMode === 'SOFT') {
-      query = query.where('is_deleted', 'in', [null, false]);
+    if (this.deleteMode === "SOFT") {
+      query = query.where("is_deleted", "==", false);
     }
 
     let querySnap;
@@ -178,7 +178,7 @@ export abstract class FirestoreDAO<
 
   async search(criteria: Criteria, uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork): Promise<Entity[]> {
     if (this.deleteMode === "SOFT") {
-      criteria.where("is_deleted", "IN", [null, false]);
+      criteria.where("is_deleted", "EQUAL", false);
     }
     
     this.logger?.debug({
@@ -230,7 +230,7 @@ export abstract class FirestoreDAO<
     }, { criteria, uow });
 
     if (this.deleteMode === "SOFT") {
-      criteria.where("is_deleted", "IN", [null, false]);
+      criteria.where("is_deleted", "EQUAL", false);
     }
     
     const querySnap = await FirestoreCriteriaQueryExecutor.execute(

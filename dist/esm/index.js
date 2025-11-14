@@ -14,7 +14,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.FirebaseAuthError = exports.getAuth = exports.RegisterEntity = exports.EntityRegistry = exports.cert = exports.getApps = exports.initializeApp = exports.Firestore = exports.getFirestore = exports.FirestoreUnitOfWorkRunner = exports.EntityFirestoreFactory = exports.PrimitiveTypesToFirestoreFormatter = exports.FirestoreEntityFactory = exports.CriteriaToFirestoreSymbolsTranslator = exports.FirestoreTypesToPrimitivesFormatter = exports.FirestoreTransactionUnitOfWork = exports.FirestoreBatchUnitOfWork = exports.FirestoreDAO = void 0;
+exports.FirebaseAuthError = exports.getAuth = exports.RegisterEntity = exports.EntityRegistry = exports.cert = exports.getApps = exports.initializeApp = exports.Firestore = exports.getFirestore = exports.DataMigrator = exports.FirestoreUnitOfWorkRunner = exports.EntityFirestoreFactory = exports.PrimitiveTypesToFirestoreFormatter = exports.FirestoreEntityFactory = exports.CriteriaToFirestoreSymbolsTranslator = exports.FirestoreTypesToPrimitivesFormatter = exports.FirestoreTransactionUnitOfWork = exports.FirestoreBatchUnitOfWork = exports.FirestoreDAO = void 0;
 var firestore_dao_1 = require("./firestore-dao");
 Object.defineProperty(exports, "FirestoreDAO", { enumerable: true, get: function () { return firestore_dao_1.FirestoreDAO; } });
 var firestore_batch_unit_of_work_1 = require("./firestore-batch-unit-of-work");
@@ -33,6 +33,8 @@ var entity_firestore_factory_1 = require("./entity-firestore-factory");
 Object.defineProperty(exports, "EntityFirestoreFactory", { enumerable: true, get: function () { return entity_firestore_factory_1.EntityFirestoreFactory; } });
 var firestore_unit_of_work_runner_1 = require("./firestore-unit-of-work-runner");
 Object.defineProperty(exports, "FirestoreUnitOfWorkRunner", { enumerable: true, get: function () { return firestore_unit_of_work_runner_1.FirestoreUnitOfWorkRunner; } });
+var data_migrator_1 = require("./data-migrator");
+Object.defineProperty(exports, "DataMigrator", { enumerable: true, get: function () { return data_migrator_1.DataMigrator; } });
 __exportStar(require("./exceptions"), exports);
 var firestore_1 = require("firebase-admin/firestore");
 Object.defineProperty(exports, "getFirestore", { enumerable: true, get: function () { return firestore_1.getFirestore; } });

@@ -6,7 +6,7 @@ export declare abstract class FirestoreDAO<M extends Model, Entity extends BaseE
     private readonly collection;
     private readonly firestoreEntityFactory;
     private readonly logger;
-    constructor(collection: CollectionReference, deleteMode: DeleteMode, logger?: Logger);
+    constructor(collection: CollectionReference, deleteMode?: DeleteMode, logger?: Logger);
     findByID(id: Entity["id"]["value"], uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork): Promise<Entity | null>;
     findOneBy(criteria: Criteria, uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork): Promise<Entity | null>;
     getAll(uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork): Promise<Entity[]>;

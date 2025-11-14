@@ -10,7 +10,7 @@ class FirestoreDAO extends shared_kernel_1.DAO {
     collection;
     firestoreEntityFactory;
     logger;
-    constructor(collection, deleteMode, logger) {
+    constructor(collection, deleteMode = "HARD", logger) {
         super(deleteMode);
         this.collection = collection;
         this.firestoreEntityFactory = new firestore_entity_factory_1.FirestoreEntityFactory(collection.path, logger?.child({ collectionName: this.collection.path, }));
@@ -60,7 +60,7 @@ class FirestoreDAO extends shared_kernel_1.DAO {
     }
     async findOneBy(criteria, uow) {
         if (this.deleteMode === "SOFT") {
-            criteria.where("is_deleted", "IN", [null, false]);
+            criteria.where("is_deleted", "EQUAL", false);
         }
         criteria.limitResults(1);
         this.logger?.debug({
@@ -95,8 +95,8 @@ class FirestoreDAO extends shared_kernel_1.DAO {
     }
     async getAll(uow) {
         let query = this.collection.limit(1000);
-        if (this.deleteMode === 'SOFT') {
-            query = query.where('is_deleted', 'in', [null, false]);
+        if (this.deleteMode === "SOFT") {
+            query = query.where("is_deleted", "==", false);
         }
         let querySnap;
         this.logger?.debug({
@@ -130,7 +130,7 @@ class FirestoreDAO extends shared_kernel_1.DAO {
     }
     async search(criteria, uow) {
         if (this.deleteMode === "SOFT") {
-            criteria.where("is_deleted", "IN", [null, false]);
+            criteria.where("is_deleted", "EQUAL", false);
         }
         this.logger?.debug({
             status: "STARTED",
@@ -169,7 +169,7 @@ class FirestoreDAO extends shared_kernel_1.DAO {
             collectionName: this.collection.path,
         }, { criteria, uow });
         if (this.deleteMode === "SOFT") {
-            criteria.where("is_deleted", "IN", [null, false]);
+            criteria.where("is_deleted", "EQUAL", false);
         }
         const querySnap = await firestore_criteria_query_executor_1.FirestoreCriteriaQueryExecutor.execute(this.collection, criteria, uow, this.logger?.child({
             status: 'IN_PROGRESS',

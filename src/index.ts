@@ -7,6 +7,7 @@ export { FirestoreEntityFactory } from "./firestore-entity-factory";
 export { PrimitiveTypesToFirestoreFormatter } from "./primitive-types-to-firestore-formatter";
 export { EntityFirestoreFactory } from "./entity-firestore-factory";
 export { FirestoreUnitOfWorkRunner } from "./firestore-unit-of-work-runner";
+export { DataMigrator } from "./data-migrator";
 export * from "./exceptions";
 
 export { getFirestore, Firestore, type CollectionReference } from "firebase-admin/firestore";
