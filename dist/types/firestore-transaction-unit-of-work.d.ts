@@ -8,7 +8,7 @@ export declare class FirestoreTransactionUnitOfWork implements UnitOfWork {
     rollback(): Promise<void>;
     get(ref: DocumentReference): Promise<DocumentSnapshot>;
     getQuery<T>(query: Query<T>): Promise<QuerySnapshot<T>>;
-    set(docRef: DocumentReference, data: DocumentData): void;
+    create(docRef: DocumentReference, data: DocumentData): void;
     update(docRef: DocumentReference, data: DocumentData): void;
     delete(docRef: DocumentReference): void;
 }

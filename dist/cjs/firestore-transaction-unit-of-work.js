@@ -17,8 +17,8 @@ class FirestoreTransactionUnitOfWork {
     getQuery(query) {
         return this.transaction.get(query);
     }
-    set(docRef, data) {
-        this.transaction.set(docRef, data);
+    create(docRef, data) {
+        this.transaction.create(docRef, data);
     }
     update(docRef, data) {
         this.transaction.update(docRef, data);

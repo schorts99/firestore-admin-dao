@@ -8,7 +8,7 @@ export declare class FirestoreBatchUnitOfWork implements UnitOfWork {
     begin(): Promise<void>;
     commit(): Promise<void>;
     rollback(): Promise<void>;
-    set(docRef: DocumentReference, data: DocumentData): void;
+    create(docRef: DocumentReference, data: DocumentData): void;
     update(docRef: DocumentReference, data: DocumentData): void;
     delete(docRef: DocumentReference): void;
 }

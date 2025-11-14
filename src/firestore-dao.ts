@@ -6,6 +6,7 @@ import {
   Entity as BaseEntity,
   Criteria,
   Logger,
+  DeleteMode,
 } from "@schorts/shared-kernel";
 
 import { FirestoreCriteriaQueryExecutor } from "./firestore-criteria-query-executor";
@@ -13,19 +14,23 @@ import { FirestoreEntityFactory } from "./firestore-entity-factory";
 import { FirestoreBatchUnitOfWork } from "./firestore-batch-unit-of-work";
 import { FirestoreTransactionUnitOfWork } from "./firestore-transaction-unit-of-work";
 import { EntityFirestoreFactory } from "./entity-firestore-factory";
-import { DocAlreadyExists } from "./exceptions";
 
 export abstract class FirestoreDAO<
   M extends Model,
   Entity extends BaseEntity<ValueObject, M>
-> implements DAO<M, Entity> {
+> extends DAO<M, Entity> {
   private readonly collection: CollectionReference;
   private readonly firestoreEntityFactory: FirestoreEntityFactory<Entity>;
   private readonly logger: Logger | undefined;
 
-  constructor(collection: CollectionReference, logger?: Logger) {
+  constructor(collection: CollectionReference, deleteMode: DeleteMode, logger?: Logger) {
+    super(deleteMode);
+
     this.collection = collection;
-    this.firestoreEntityFactory = new FirestoreEntityFactory(collection.path);
+    this.firestoreEntityFactory = new FirestoreEntityFactory(
+      collection.path,
+      logger?.child({ collectionName: this.collection.path, }),
+    );
     this.logger = logger;
   }
 
@@ -53,6 +58,21 @@ export abstract class FirestoreDAO<
       collectionName: this.collection.path,
     }, { docSnap });
 
+    if (this.deleteMode === "SOFT" && docSnap.exists) {
+      const isDeleted = docSnap.data()!["is_deleted"];
+
+      if (isDeleted) {
+        this.logger?.debug({
+          status: "COMPLETED",
+          class: "FirestoreDAO",
+          method: "findByID",
+          collectionName: this.collection.path,
+        }, { isDeleted });
+
+        return null;
+      }
+    }
+
     const entity = this.firestoreEntityFactory.fromSnapshot(docSnap);
 
     this.logger?.debug({
@@ -66,6 +86,10 @@ export abstract class FirestoreDAO<
   }
 
   async findOneBy(criteria: Criteria, uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork): Promise<Entity | null> {
+    if (this.deleteMode === "SOFT") {
+      criteria.where("is_deleted", "IN", [null, false]);
+    }
+
     criteria.limitResults(1);
 
     this.logger?.debug({
@@ -97,7 +121,7 @@ export abstract class FirestoreDAO<
     if (querySnap.empty) return null;
 
     const docSnap = querySnap.docs[0]!;
-    const entity = this.firestoreEntityFactory.fromSnapshot(docSnap);;
+    const entity = this.firestoreEntityFactory.fromSnapshot(docSnap);
 
     this.logger?.debug({
       status: "COMPLETED",
@@ -110,7 +134,12 @@ export abstract class FirestoreDAO<
   }
 
   async getAll(uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork): Promise<Entity[]> {
-    const query = this.collection.limit(1000);
+    let query = this.collection.limit(1000);
+
+    if (this.deleteMode === 'SOFT') {
+      query = query.where('is_deleted', 'in', [null, false]);
+    }
+
     let querySnap;
 
     this.logger?.debug({
@@ -123,7 +152,7 @@ export abstract class FirestoreDAO<
     if (uow && uow instanceof FirestoreTransactionUnitOfWork) {
       querySnap = await uow.getQuery(query);
     } else {
-      querySnap = await this.collection.get();
+      querySnap = await query.get();
     }
 
     this.logger?.debug({
@@ -148,6 +177,10 @@ export abstract class FirestoreDAO<
   }
 
   async search(criteria: Criteria, uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork): Promise<Entity[]> {
+    if (this.deleteMode === "SOFT") {
+      criteria.where("is_deleted", "IN", [null, false]);
+    }
+    
     this.logger?.debug({
       status: "STARTED",
       class: "FirestoreDAO",
@@ -196,6 +229,10 @@ export abstract class FirestoreDAO<
       collectionName: this.collection.path,
     }, { criteria, uow });
 
+    if (this.deleteMode === "SOFT") {
+      criteria.where("is_deleted", "IN", [null, false]);
+    }
+    
     const querySnap = await FirestoreCriteriaQueryExecutor.execute(
       this.collection,
       criteria,
@@ -222,7 +259,6 @@ export abstract class FirestoreDAO<
     const docRef = this.collection.doc(
       typeof entity.id.value === "string" ? entity.id.value : entity.id.value!.toString(),
     );
-    let docSnap;
 
     this.logger?.debug({
       status: "STARTED",
@@ -230,31 +266,6 @@ export abstract class FirestoreDAO<
       method: "create",
       collectionName: this.collection.path,
     }, { entity, uow, docRef });
-
-    if (uow && uow instanceof FirestoreTransactionUnitOfWork) {
-      docSnap = await uow.get(docRef);
-    } else {
-      docSnap = await docRef.get();
-    }
-
-    this.logger?.debug({
-      status: "IN_PROGRESS",
-      class: "FirestoreDAO",
-      method: "create",
-      collectionName: this.collection.path,
-    }, { docSnap });
-
-    if (docSnap.exists) {
-      const error = new DocAlreadyExists();
-
-      this.logger?.error({
-        status: "ERROR",
-        class: "FirestoreDAO",
-        method: "create",
-        collectionName: this.collection.path,
-      }, { error });
-      throw error;
-    }
 
     const data = EntityFirestoreFactory.fromEntity(entity);
 
@@ -265,10 +276,14 @@ export abstract class FirestoreDAO<
       collectionName: this.collection.path,
     }, { data });
 
+    if (this.deleteMode === "SOFT") {
+      data.is_deleted = false;
+    }
+
     if (uow) {
-      uow.set(docRef, data);
+      uow.create(docRef, data);
     } else {
-      await docRef.set(data);
+      await docRef.create(data);
     }
 
     this.logger?.debug({
@@ -302,6 +317,10 @@ export abstract class FirestoreDAO<
       collectionName: this.collection.path,
     }, { data });
 
+    if (this.deleteMode === "SOFT") {
+      data.is_deleted = false;
+    }
+
     if (uow) {
       uow.update(docRef, data);
     } else {
@@ -331,9 +350,23 @@ export abstract class FirestoreDAO<
     }, { entity, uow, docRef });
 
     if (uow) {
-      uow.delete(docRef);
+      if (this.deleteMode === "HARD") {
+        uow.delete(docRef);
+      } else {
+        const data = EntityFirestoreFactory.fromEntity(entity);
+        data.is_deleted = true;
+        
+        uow.update(docRef, data);
+      }
     } else {
-      await docRef.delete();
+      if (this.deleteMode === "HARD") {
+        await docRef.delete();
+      } else {
+        const data = EntityFirestoreFactory.fromEntity(entity);
+        data.is_deleted = true;
+
+        await docRef.update(data);
+      }
     }
 
     this.logger?.debug({

@@ -32,7 +32,7 @@ export class FirestoreBatchUnitOfWork implements UnitOfWork {
     this.active = false;
   }
 
-  set(docRef: DocumentReference, data: DocumentData): void {
+  create(docRef: DocumentReference, data: DocumentData): void {
     this.batch.set(docRef, data);
   }
 

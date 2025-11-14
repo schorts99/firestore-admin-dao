@@ -1,7 +1,9 @@
 import { DocumentSnapshot } from "firebase-admin/firestore";
+import { type Logger } from "@schorts/shared-kernel";
 export declare class FirestoreEntityFactory<Entity> {
     private readonly collectionName;
-    constructor(collectionName: string);
+    private readonly logger?;
+    constructor(collectionName: string, logger?: Logger | undefined);
     fromSnapshot(docSnap: DocumentSnapshot): Entity | null;
     fromSnapshots(docs: DocumentSnapshot[]): Entity[];
 }

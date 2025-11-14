@@ -28,8 +28,8 @@ export class FirestoreTransactionUnitOfWork implements UnitOfWork {
     return this.transaction.get(query);
   }
 
-  set(docRef: DocumentReference, data: DocumentData): void {
-    this.transaction.set(docRef, data);
+  create(docRef: DocumentReference, data: DocumentData): void {
+    this.transaction.create(docRef, data);
   }
 
   update(docRef: DocumentReference, data: DocumentData): void {

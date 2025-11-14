@@ -24,7 +24,7 @@ class FirestoreBatchUnitOfWork {
         this.batch = this.firestore.batch();
         this.active = false;
     }
-    set(docRef, data) {
+    create(docRef, data) {
         this.batch.set(docRef, data);
     }
     update(docRef, data) {
