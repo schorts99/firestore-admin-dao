@@ -1,10 +1,11 @@
 import { Firestore, DocumentReference, DocumentData } from "firebase-admin/firestore";
-import { UnitOfWork } from "@schorts/shared-kernel";
+import { UnitOfWork, type Logger } from "@schorts/shared-kernel";
 export declare class FirestoreBatchUnitOfWork implements UnitOfWork {
     private readonly firestore;
     private batch;
     private active;
-    constructor(firestore: Firestore);
+    private logger;
+    constructor(firestore: Firestore, logger?: Logger);
     begin(): Promise<void>;
     commit(): Promise<void>;
     rollback(): Promise<void>;
