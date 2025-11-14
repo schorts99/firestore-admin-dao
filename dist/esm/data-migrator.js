@@ -4,11 +4,14 @@ exports.DataMigrator = void 0;
 const firestore_batch_unit_of_work_1 = require("./firestore-batch-unit-of-work");
 class DataMigrator {
     collection;
-    constructor(collection) {
+    logger;
+    constructor(collection, logger) {
         this.collection = collection;
+        this.logger = logger;
     }
     async migrateFromHardToSoftDelete() {
         const uow = new firestore_batch_unit_of_work_1.FirestoreBatchUnitOfWork(this.collection.firestore);
+        await uow.begin();
         const snapshot = await this.collection.get();
         if (snapshot.empty) {
             return;

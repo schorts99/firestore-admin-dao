@@ -1,15 +1,20 @@
 import { CollectionReference } from "firebase-admin/firestore";
+import { Logger } from "@schorts/shared-kernel";
+
 import { FirestoreBatchUnitOfWork } from './firestore-batch-unit-of-work';
 
 export class DataMigrator {
   constructor(
     private readonly collection: CollectionReference,
+    private readonly logger?: Logger,
   ) {}
 
   async migrateFromHardToSoftDelete() {
     const uow = new FirestoreBatchUnitOfWork(
       this.collection.firestore,
     );
+
+    await uow.begin();
 
     const snapshot = await this.collection.get();
 
