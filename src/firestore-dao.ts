@@ -18,7 +18,7 @@ import { EntityFirestoreFactory } from "./entity-firestore-factory";
 export abstract class FirestoreDAO<
   M extends Model,
   Entity extends BaseEntity<ValueObject, M>
-> extends DAO<M, Entity> {
+> extends DAO<M, Entity, true> {
   private readonly collection: CollectionReference;
   private readonly firestoreEntityFactory: FirestoreEntityFactory<Entity>;
   private readonly logger: Logger | undefined;

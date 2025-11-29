@@ -10,9 +10,21 @@ class DataMigrator {
         this.logger = logger;
     }
     async migrateFromHardToSoftDelete() {
+        this.logger?.debug({
+            status: "STARTED",
+            class: "DataMigrator",
+            method: "migrateFromHardToSoftDelete",
+            collectionName: this.collection.path,
+        });
         const uow = new firestore_batch_unit_of_work_1.FirestoreBatchUnitOfWork(this.collection.firestore);
         await uow.begin();
         const snapshot = await this.collection.get();
+        this.logger?.debug({
+            status: "IN_PROGRESS",
+            class: "DataMigrator",
+            method: "migrateFromHardToSoftDelete",
+            collectionName: this.collection.path,
+        }, { snapshot });
         if (snapshot.empty) {
             return;
         }
@@ -23,6 +35,12 @@ class DataMigrator {
             }
         }
         await uow.commit();
+        this.logger?.debug({
+            status: "COMPLETED",
+            class: "DataMigrator",
+            method: "migrateFromHardToSoftDelete",
+            collectionName: this.collection.path,
+        });
     }
 }
 exports.DataMigrator = DataMigrator;

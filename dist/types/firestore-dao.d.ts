@@ -2,7 +2,7 @@ import { CollectionReference } from "firebase-admin/firestore";
 import { DAO, Model, ValueObject, Entity as BaseEntity, Criteria, Logger, DeleteMode } from "@schorts/shared-kernel";
 import { FirestoreBatchUnitOfWork } from "./firestore-batch-unit-of-work";
 import { FirestoreTransactionUnitOfWork } from "./firestore-transaction-unit-of-work";
-export declare abstract class FirestoreDAO<M extends Model, Entity extends BaseEntity<ValueObject, M>> extends DAO<M, Entity> {
+export declare abstract class FirestoreDAO<M extends Model, Entity extends BaseEntity<ValueObject, M>> extends DAO<M, Entity, true> {
     private readonly collection;
     private readonly firestoreEntityFactory;
     private readonly logger;

@@ -1,7 +1,7 @@
 import { Firestore } from "firebase-admin/firestore";
 import { UnitOfWorkRunner } from "@schorts/shared-kernel";
 import { FirestoreTransactionUnitOfWork } from "./firestore-transaction-unit-of-work";
-export declare class FirestoreUnitOfWorkRunner implements UnitOfWorkRunner {
+export declare class FirestoreUnitOfWorkRunner implements UnitOfWorkRunner<true> {
     private readonly firestore;
     constructor(firestore: Firestore);
     run<T>(operation: (uow: FirestoreTransactionUnitOfWork) => Promise<T>): Promise<T>;

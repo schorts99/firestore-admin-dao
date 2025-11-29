@@ -3,7 +3,7 @@ import { UnitOfWorkRunner } from "@schorts/shared-kernel";
 
 import { FirestoreTransactionUnitOfWork } from "./firestore-transaction-unit-of-work";
 
-export class FirestoreUnitOfWorkRunner implements UnitOfWorkRunner {
+export class FirestoreUnitOfWorkRunner implements UnitOfWorkRunner<true> {
   constructor(private readonly firestore: Firestore) {}
 
   async run<T>(operation: (uow: FirestoreTransactionUnitOfWork) => Promise<T>): Promise<T> {
