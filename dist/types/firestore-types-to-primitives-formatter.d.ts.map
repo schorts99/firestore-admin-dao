@@ -1,1 +1,0 @@
-{"version":3,"file":"firestore-types-to-primitives-formatter.d.ts","sourceRoot":"","sources":["../../src/firestore-types-to-primitives-formatter.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,YAAY,EAAa,MAAM,0BAA0B,CAAC;AAEnE,qBAAa,mCAAmC;IAC9C,MAAM,CAAC,MAAM,CAAC,IAAI,EAAE,YAAY,GAAG,YAAY;IAI/C,MAAM,CAAC,gBAAgB,CAAC,IAAI,EAAE,YAAY,GAAG,YAAY;CAW1D"}
