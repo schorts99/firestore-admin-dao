@@ -297,6 +297,7 @@ export abstract class FirestoreDAO<
 
     if (this.deleteMode === "SOFT") {
       data.is_deleted = false;
+      data.deleted_at = null;
     }
 
     if (uow) {
@@ -338,6 +339,7 @@ export abstract class FirestoreDAO<
 
     if (this.deleteMode === "SOFT") {
       data.is_deleted = false;
+      data.deleted_at = null;
     }
 
     if (uow) {
@@ -394,6 +396,64 @@ export abstract class FirestoreDAO<
       status: "COMPLETED",
       class: "FirestoreDAO",
       method: "delete",
+      collectionName: this.collection.path,
+    });
+
+    return entity;
+  }
+
+  async restore(entity: Entity, uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork): Promise<Entity> {
+    this.logger?.debug({
+      status: "STARTED",
+      class: "FirestoreDAO",
+      method: "restore",
+      collectionName: this.collection.path,
+    }, { entity, uow, deleteMode: this.deleteMode });
+
+    if (this.deleteMode === "HARD") {
+      this.logger?.debug({
+        status: "COMPLETED",
+        class: "FirestoreDAO",
+        method: "update",
+        collectionName: this.collection.path,
+      });
+
+      return entity;
+    }
+
+    const docRef = this.collection.doc(
+      typeof entity.id.value === "string" ? entity.id.value : entity.id.value!.toString()
+    );
+
+    this.logger?.debug({
+      status: "IN_PROGRESS",
+      class: "FirestoreDAO",
+      method: "restore",
+      collectionName: this.collection.path,
+    }, { docRef });
+
+    const data = EntityFirestoreFactory.fromEntity(entity);
+
+    this.logger?.debug({
+      status: "IN_PROGRESS",
+      class: "FirestoreDAO",
+      method: "restore",
+      collectionName: this.collection.path,
+    }, { data });
+
+    data.is_deleted = false;
+    data.deleted_at = null;
+
+    if (uow) {
+      uow.update(docRef, data);
+    } else {
+      await docRef.update(data);
+    }
+
+    this.logger?.debug({
+      status: "COMPLETED",
+      class: "FirestoreDAO",
+      method: "update",
       collectionName: this.collection.path,
     });
 
