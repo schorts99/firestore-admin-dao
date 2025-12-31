@@ -38,9 +38,18 @@ export class DataMigrator {
 
     for (const doc of snapshot.docs) {
       const data = doc.data();
+      const newData: Record<string, any> = {};
 
       if (data["is_deleted"] === undefined) {
-        uow.update(doc.ref, { is_deleted: false, deleted_at: null });
+        newData["is_deleted"] = false;
+      }
+
+      if (data["deleted_at"] === undefined) {
+        newData["deleted_at"] = null;
+      }
+
+      if (Object.keys(newData).length > 0) {
+        uow.update(doc.ref, newData);
       }
     }
 
