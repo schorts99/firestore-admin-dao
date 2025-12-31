@@ -34,7 +34,11 @@ export abstract class FirestoreDAO<
     this.logger = logger;
   }
 
-  async findByID(id: Entity["id"]["value"], uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork): Promise<Entity | null> {
+  async findByID(
+    id: Entity["id"]["value"],
+    uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork,
+    includeDeleted = false,
+  ): Promise<Entity | null> {
     const docRef = this.collection.doc(typeof id === "string" ? id : id!.toString());
     let docSnap;
 
@@ -61,7 +65,7 @@ export abstract class FirestoreDAO<
     if (this.deleteMode === "SOFT" && docSnap.exists) {
       const isDeleted = docSnap.data()!["is_deleted"];
 
-      if (isDeleted) {
+      if (isDeleted && !includeDeleted) {
         this.logger?.debug({
           status: "COMPLETED",
           class: "FirestoreDAO",
@@ -85,8 +89,12 @@ export abstract class FirestoreDAO<
     return entity;
   }
 
-  async findOneBy(criteria: Criteria, uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork): Promise<Entity | null> {
-    if (this.deleteMode === "SOFT") {
+  async findOneBy(
+    criteria: Criteria,
+    uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork,
+    includeDeleted = false,
+  ): Promise<Entity | null> {
+    if (this.deleteMode === "SOFT" && !includeDeleted) {
       criteria.where("is_deleted", "EQUAL", false);
     }
 
@@ -133,10 +141,13 @@ export abstract class FirestoreDAO<
     return entity;
   }
 
-  async getAll(uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork): Promise<Entity[]> {
+  async getAll(
+    uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork,
+    includeDeleted = false,
+  ): Promise<Entity[]> {
     let query = this.collection.limit(1000);
 
-    if (this.deleteMode === "SOFT") {
+    if (this.deleteMode === "SOFT" && !includeDeleted) {
       query = query.where("is_deleted", "==", false);
     }
 
@@ -176,8 +187,12 @@ export abstract class FirestoreDAO<
     return entities;
   }
 
-  async search(criteria: Criteria, uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork): Promise<Entity[]> {
-    if (this.deleteMode === "SOFT") {
+  async search(
+    criteria: Criteria,
+    uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork,
+    includeDeleted = false,
+  ): Promise<Entity[]> {
+    if (this.deleteMode === "SOFT" && !includeDeleted) {
       criteria.where("is_deleted", "EQUAL", false);
     }
     
@@ -221,15 +236,19 @@ export abstract class FirestoreDAO<
     return entities;
   }
 
-  async countBy(criteria: Criteria, uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork): Promise<number> {
+  async countBy(
+    criteria: Criteria,
+    uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork,
+    includeDeleted = false,
+  ): Promise<number> {
     this.logger?.debug({
       status: "STARTED",
       class: "FirestoreDAO",
       method: "countBy",
       collectionName: this.collection.path,
-    }, { criteria, uow });
+    }, { criteria, uow, includeDeleted });
 
-    if (this.deleteMode === "SOFT") {
+    if (this.deleteMode === "SOFT" && !includeDeleted) {
       criteria.where("is_deleted", "EQUAL", false);
     }
     
@@ -365,6 +384,7 @@ export abstract class FirestoreDAO<
       } else {
         const data = EntityFirestoreFactory.fromEntity(entity);
         data.is_deleted = true;
+        data.deleted_at = Timestamp.now();
 
         await docRef.update(data);
       }
@@ -380,4 +400,3 @@ export abstract class FirestoreDAO<
     return entity;
   }
 }
-
