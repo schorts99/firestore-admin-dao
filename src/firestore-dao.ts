@@ -1,4 +1,4 @@
-import { CollectionReference } from "firebase-admin/firestore";
+import { CollectionReference, Timestamp } from "firebase-admin/firestore";
 import {
   DAO,
   Model,
@@ -355,6 +355,7 @@ export abstract class FirestoreDAO<
       } else {
         const data = EntityFirestoreFactory.fromEntity(entity);
         data.is_deleted = true;
+        data.deleted_at = Timestamp.now();
         
         uow.update(docRef, data);
       }

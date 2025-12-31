@@ -40,7 +40,7 @@ export class DataMigrator {
       const data = doc.data();
 
       if (data["is_deleted"] === undefined) {
-        uow.update(doc.ref, { is_deleted: false });
+        uow.update(doc.ref, { is_deleted: false, deleted_at: null });
       }
     }
 
