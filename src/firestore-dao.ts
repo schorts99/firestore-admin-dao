@@ -444,6 +444,14 @@ export abstract class FirestoreDAO<
     data.is_deleted = false;
     data.deleted_at = null;
 
+    if ('is_deleted' in entity) {
+      entity.is_deleted = false;
+    }
+
+    if ('deleted_at' in entity) {
+      entity.deleted_at = null;
+    }
+
     if (uow) {
       uow.update(docRef, data);
     } else {
