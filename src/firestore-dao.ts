@@ -448,8 +448,16 @@ export abstract class FirestoreDAO<
       entity.is_deleted = false;
     }
 
+    if ('isDeleted' in entity) {
+      entity.isDeleted = false;
+    }
+
     if ('deleted_at' in entity) {
       entity.deleted_at = null;
+    }
+
+    if ('deletedAt' in entity) {
+      entity.deletedAt = null;
     }
 
     if (uow) {
