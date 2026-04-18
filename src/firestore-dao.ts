@@ -14,7 +14,6 @@ import { FirestoreEntityFactory } from "./firestore-entity-factory";
 import { FirestoreBatchUnitOfWork } from "./firestore-batch-unit-of-work";
 import { FirestoreTransactionUnitOfWork } from "./firestore-transaction-unit-of-work";
 import { EntityFirestoreFactory } from "./entity-firestore-factory";
-import { EntityNotRecoverable } from "./exceptions";
 
 export abstract class FirestoreDAO<
   M extends Model,
@@ -336,58 +335,81 @@ export abstract class FirestoreDAO<
     return entity;
   }
 
-  async restore(entity: Entity, uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork): Promise<Entity> {
-    this.logger?.debug("[FirestoreDAO restore] started", {
+  async exists(
+    id: Entity["id"]["value"],
+    uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork,
+    includeDeleted = false,
+  ): Promise<boolean> {
+    this.logger?.debug("[FirestoreDAO exists] started", {
+      id,
+      uow,
+      includeDeleted,
+    });
+
+    const entity = await this.findByID(id, uow, includeDeleted);
+
+    this.logger?.debug("[FirestoreDAO exists] completed", {
+      entity,
+    });
+
+    return entity !== null;
+  }
+
+  async deleteByID(
+    id: Entity["id"]["value"],
+    uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork,
+  ): Promise<void> {
+    this.logger?.debug("[FirestoreDAO deleteByID] started", {
+      id,
+      uow,
+    });
+
+    const entity = await this.findByID(id, uow);
+
+    this.logger?.debug("[FirestoreDAO deleteByID] completed", {
+      entity,
+    });
+
+    if (entity) {
+      await this.delete(entity, uow);
+    }
+  }
+
+  async save(
+    entity: Entity,
+    uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork,
+  ): Promise<Entity> {
+    this.logger?.debug("[FirestoreDAO save] started", {
       entity,
       uow,
-      deleteMode: this.deleteMode,
     });
 
-    if (this.deleteMode === "HARD") {
-      throw new EntityNotRecoverable();
-    }
+    const existing = await this.findByID(entity.id.value, uow, true);
 
-    const docRef = this.collection.doc(
-      typeof entity.id.value === "string" ? entity.id.value : entity.id.value!.toString()
-    );
-
-    this.logger?.debug("[FirestoreDAO restore] found document", {
-      docRef,
+    this.logger?.debug("[FirestoreDAO save] completed", {
+      existing,
     });
 
-    const data = EntityFirestoreFactory.fromEntity(entity);
-
-    this.logger?.debug("[FirestoreDAO restore] created document data", {
-      data,
-    });
-
-    data.is_deleted = false;
-    data.deleted_at = null;
-
-    if (uow) {
-      uow.update(docRef, data);
+    if (existing) {
+      return this.update(entity, uow);
     } else {
-      await docRef.update(data);
+      return this.create(entity, uow);
     }
+  }
 
-    if ('is_deleted' in entity) {
-      entity.is_deleted = false;
-    }
+  async saveMany(
+    entities: Entity[],
+    uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork,
+  ): Promise<Entity[]> {
+    this.logger?.debug("[FirestoreDAO saveMany] started", {
+      entities,
+      uow,
+    });
 
-    if ('isDeleted' in entity) {
-      entity.isDeleted = false;
-    }
+    const promises = entities.map((entity) => this.save(entity, uow));
 
-    if ('deleted_at' in entity) {
-      entity.deleted_at = null;
-    }
+    this.logger?.debug("[FirestoreDAO exists] completed");
 
-    if ('deletedAt' in entity) {
-      entity.deletedAt = null;
-    }
-
-    this.logger?.debug("[FirestoreDAO restore] completed", { entity });
-
-    return entity;
+    return Promise.all(promises);
   }
 }
