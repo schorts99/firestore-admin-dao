@@ -14,6 +14,7 @@ import { FirestoreEntityFactory } from "./firestore-entity-factory";
 import { FirestoreBatchUnitOfWork } from "./firestore-batch-unit-of-work";
 import { FirestoreTransactionUnitOfWork } from "./firestore-transaction-unit-of-work";
 import { EntityFirestoreFactory } from "./entity-firestore-factory";
+import { EntityNotRecoverable } from "./exceptions";
 
 export abstract class FirestoreDAO<
   M extends Model,
@@ -411,5 +412,60 @@ export abstract class FirestoreDAO<
     this.logger?.debug("[FirestoreDAO exists] completed");
 
     return Promise.all(promises);
+  }
+
+  async restore(entity: Entity, uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork): Promise<Entity> {
+    this.logger?.debug("[FirestoreDAO restore] started", {
+      entity,
+      uow,
+      deleteMode: this.deleteMode,
+    });
+
+    if (this.deleteMode === "HARD") {
+      throw new EntityNotRecoverable();
+    }
+
+    const docRef = this.collection.doc(
+      typeof entity.id.value === "string" ? entity.id.value : entity.id.value!.toString()
+    );
+
+    this.logger?.debug("[FirestoreDAO restore] found document", {
+      docRef,
+    });
+
+    const data = EntityFirestoreFactory.fromEntity(entity);
+
+    this.logger?.debug("[FirestoreDAO restore] created document data", {
+      data,
+    });
+
+    data.is_deleted = false;
+    data.deleted_at = null;
+
+    if (uow) {
+      uow.update(docRef, data);
+    } else {
+      await docRef.update(data);
+    }
+
+    if ('is_deleted' in entity) {
+      entity.is_deleted = false;
+    }
+
+    if ('isDeleted' in entity) {
+      entity.isDeleted = false;
+    }
+
+    if ('deleted_at' in entity) {
+      entity.deleted_at = null;
+    }
+
+    if ('deletedAt' in entity) {
+      entity.deletedAt = null;
+    }
+
+    this.logger?.debug("[FirestoreDAO restore] completed", { entity });
+
+    return entity;
   }
 }
