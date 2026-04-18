@@ -10,7 +10,7 @@ export class FirestoreTypesToPrimitivesFormatter {
 
     Object.keys(formattedDates).forEach((key) => {
       if (formattedDates[key] instanceof Timestamp) {
-        formattedDates[key] = formattedDates[key].toDate().toString();
+        formattedDates[key] = formattedDates[key].toDate().toISOString();
       }
     });
 
