@@ -10,11 +10,9 @@ export class FirestoreEntityFactory<Entity> {
   ) {}
 
   fromSnapshot(docSnap: DocumentSnapshot): Entity | null {
-    this.logger?.debug({
-      status: "STARTED",
-      class: "FirestoreEntityFactory",
-      method: "fromSnapshot",
-    }, { docSnap });
+    this.logger?.debug("[FirestoreEntityFactory fromSnapshot] started", {
+      docSnap,
+    });
 
     if (!docSnap.exists) {
       return null;
@@ -22,40 +20,32 @@ export class FirestoreEntityFactory<Entity> {
 
     const data = FirestoreTypesToPrimitivesFormatter.format(docSnap.data()!);
 
-    this.logger?.debug({
-      status: "IN_PROGRESS",
-      class: "FirestoreEntityFactory",
-      method: "fromSnapshot",
-    }, { data });
+    this.logger?.debug("[FirestoreEntityFactory fromSnapshot] formatting data", {
+      data,
+    });
 
-    const entity = EntityRegistry.create(this.collectionName, { id: docSnap.id, ...data });
+    const entity = EntityRegistry.fromPrimitives(this.collectionName, { id: docSnap.id, ...data });
 
-    this.logger?.debug({
-      status: "COMPLETED",
-      class: "FirestoreEntityFactory",
-      method: "fromSnapshot",
-    }, { entity });
+    this.logger?.debug("[FirestoreEntityFactory fromSnapshot] completed", {
+      entity,
+    });
 
     return entity as Entity;
   }
 
   fromSnapshots(docs: DocumentSnapshot[]): Entity[] {
-    this.logger?.debug({
-      status: "STARTED",
-      class: "FirestoreEntityFactory",
-      method: "fromSnapshots",
-    }, { docs });
+    this.logger?.debug("[FirestoreEntityFactory fromSnapshots] started", {
+      docs,
+    });
 
     const entities = docs
       .filter((doc) => doc.exists)
       .map((doc) => this.fromSnapshot(doc)!)
       .filter(Boolean);
 
-    this.logger?.debug({
-      status: "COMPLETED",
-      class: "FirestoreEntityFactory",
-      method: "fromSnapshots",
-    }, { entities });
+    this.logger?.debug("[FirestoreEntityFactory fromSnapshots] completed", {
+      entities,
+    });
     
     return entities;
   }

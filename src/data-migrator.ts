@@ -10,10 +10,7 @@ export class DataMigrator {
   ) {}
 
   async migrateFromHardToSoftDelete() {
-    this.logger?.debug({
-      status: "STARTED",
-      class: "DataMigrator",
-      method: "migrateFromHardToSoftDelete",
+    this.logger?.debug("[DataMigrator migrateFromHardToSoftDelete] started", {
       collectionName: this.collection.path,
     });
 
@@ -25,12 +22,9 @@ export class DataMigrator {
 
     const snapshot = await this.collection.get();
 
-    this.logger?.debug({
-      status: "IN_PROGRESS",
-      class: "DataMigrator",
-      method: "migrateFromHardToSoftDelete",
-      collectionName: this.collection.path,
-    }, { snapshot });
+    this.logger?.debug("[DataMigrator migrateFromHardToSoftDelete] migration in progress", {
+      snapshot,
+    });
 
     if (snapshot.empty) {
       return;
@@ -55,11 +49,6 @@ export class DataMigrator {
 
     await uow.commit();
 
-    this.logger?.debug({
-      status: "COMPLETED",
-      class: "DataMigrator",
-      method: "migrateFromHardToSoftDelete",
-      collectionName: this.collection.path,
-    });
+    this.logger?.debug("[DataMigrator migrateFromHardToSoftDelete] completed");
   }
 }

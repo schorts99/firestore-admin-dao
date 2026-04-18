@@ -12,6 +12,10 @@ import { UnitOfWork } from '@schorts/shared-kernel';
 export class FirestoreTransactionUnitOfWork implements UnitOfWork {
   constructor(private readonly transaction: Transaction) {}
 
+  isActive(): boolean {
+    return true;
+  }
+
   async begin(): Promise<void> {}
 
   async commit(): Promise<void> {}

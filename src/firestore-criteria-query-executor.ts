@@ -20,11 +20,10 @@ export class FirestoreCriteriaQueryExecutor {
   ): Promise<QuerySnapshot> {
     const geoFilter = criteria.filters.find(f => f.operator === "GEO_RADIUS");
 
-    logger?.debug({
-      status: "STARTED",
-      class: "FirestoreCriteriaQueryExecutor",
-      method: "execute",
-    }, { geoFilter, uow });
+    logger?.debug(
+      '[FirestoreCriteriaQueryExecutor execute] started',
+      { geoFilter, uow, criteria, collection },
+    );
 
     if (geoFilter) {
       const geoField = geoFilter.field;
@@ -32,11 +31,10 @@ export class FirestoreCriteriaQueryExecutor {
       const bounds = geohashQueryBounds(center, radiusInM);
       const promises: Promise<QuerySnapshot>[] = [];
 
-      logger?.debug({
-        status: "IN_PROGRESS",
-        class: "FirestoreCriteriaQueryExecutor",
-        method: "execute",
-      }, { bounds, center, radiusInM, geoField });
+      logger?.debug(
+        "[FirestoreCriteriaQueryExecutor execute] executing geospatial query with bounds",
+        { bounds, center, radiusInM, geoField },
+      );
 
       for (const b of bounds) {
         let queryRef: Query = collection;
@@ -66,11 +64,10 @@ export class FirestoreCriteriaQueryExecutor {
           queryRef = queryRef.limit(criteria.limit);
         }
 
-        logger?.debug({
-          status: "IN_PROGRESS",
-          class: "FirestoreCriteriaQueryExecutor",
-          method: "execute",
-        }, { queryRef });
+        logger?.debug(
+          "[FirestoreCriteriaQueryExecutor execute] constructed query for geospatial bound",
+          { queryRef },
+        );
 
         if (uow && uow instanceof FirestoreTransactionUnitOfWork) {
           promises.push(uow.getQuery(queryRef));
@@ -83,13 +80,12 @@ export class FirestoreCriteriaQueryExecutor {
       const allDocs = snapshots.flatMap((snap) => snap.docs);
       const uniqueDocsMap = new Map<string, DocumentSnapshot>();
 
-      logger?.debug({
-        status: "IN_PROGRESS",
-        class: "FirestoreCriteriaQueryExecutor",
-        method: "execute",
-      }, { snapshots });
+      logger?.debug(
+        "[FirestoreCriteriaQueryExecutor execute] retrieved all snapshots",
+        { snapshots }
+      );
 
-      allDocs.forEach(doc => uniqueDocsMap.set(doc.id, doc));
+      allDocs.forEach((doc) => uniqueDocsMap.set(doc.id, doc));
 
       const filteredDocs = Array.from(uniqueDocsMap.values()).filter((doc) => {
         const data = doc.data();
@@ -98,14 +94,13 @@ export class FirestoreCriteriaQueryExecutor {
         if (!coords) return false;
 
         const distanceInM = distanceBetween(center, [coords.latitude, coords.longitude]) * 1000;
+
         return distanceInM <= radiusInM;
       });
 
-      logger?.debug({
-        status: "COMPLETED",
-        class: "FirestoreCriteriaQueryExecutor",
-        method: "execute",
-      }, { filteredDocs });
+      logger?.debug(
+        "[FirestoreCriteriaQueryExecutor execute] completed",
+        { filteredDocs });
 
       return {
         docs: filteredDocs,
@@ -114,6 +109,10 @@ export class FirestoreCriteriaQueryExecutor {
         forEach: (callback: (doc: DocumentSnapshot) => void) => filteredDocs.forEach(callback),
       } as QuerySnapshot;
     } else {
+      logger?.debug(
+        "[FirestoreCriteriaQueryExecutor execute] executing query with no geospatial filters",
+      );
+
       let queryRef: Query = collection;
 
       for (const filter of criteria.filters) {
@@ -140,16 +139,20 @@ export class FirestoreCriteriaQueryExecutor {
       }
 
       if (uow && uow instanceof FirestoreTransactionUnitOfWork) {
+        logger?.debug(
+          "[FirestoreCriteriaQueryExecutor execute] completed",
+          { queryRef }
+        );
+
         return uow.getQuery(queryRef);
       }
 
-      logger?.debug({
-        status: "COMPLETED",
-        class: "FirestoreCriteriaQueryExecutor",
-        method: "execute",
-      }, { queryRef });
+      logger?.debug(
+        "[FirestoreCriteriaQueryExecutor execute] completed",
+        { queryRef }
+      );
 
-      return queryRef.get()
+      return queryRef.get();
     }
   }
 }

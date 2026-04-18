@@ -14,6 +14,7 @@ import { FirestoreEntityFactory } from "./firestore-entity-factory";
 import { FirestoreBatchUnitOfWork } from "./firestore-batch-unit-of-work";
 import { FirestoreTransactionUnitOfWork } from "./firestore-transaction-unit-of-work";
 import { EntityFirestoreFactory } from "./entity-firestore-factory";
+import { EntityNotRecoverable } from "./exceptions";
 
 export abstract class FirestoreDAO<
   M extends Model,
@@ -42,12 +43,12 @@ export abstract class FirestoreDAO<
     const docRef = this.collection.doc(typeof id === "string" ? id : id!.toString());
     let docSnap;
 
-    this.logger?.debug({
-      status: "STARTED",
-      class: "FirestoreDAO",
-      method: "findByID",
+    this.logger?.debug("[FirestoreDAO findByID] started", {
       collectionName: this.collection.path,
-    }, { docRef, uow });
+      docRef,
+      uow,
+      includeDeleted,
+    });
 
     if (uow && uow instanceof FirestoreTransactionUnitOfWork) {
       docSnap = await uow.get(docRef);
@@ -55,23 +56,15 @@ export abstract class FirestoreDAO<
       docSnap = await docRef.get();
     }
 
-    this.logger?.debug({
-      status: "IN_PROGRESS",
-      class: "FirestoreDAO",
-      method: "findByID",
-      collectionName: this.collection.path,
-    }, { docSnap });
+    this.logger?.debug("[FirestoreDAO findByID] retrieved document snapshot", {
+      docSnap,
+    });
 
     if (this.deleteMode === "SOFT" && docSnap.exists) {
       const isDeleted = docSnap.data()!["is_deleted"];
 
       if (isDeleted && !includeDeleted) {
-        this.logger?.debug({
-          status: "COMPLETED",
-          class: "FirestoreDAO",
-          method: "findByID",
-          collectionName: this.collection.path,
-        }, { isDeleted });
+        this.logger?.debug("[FirestoreDAO findByID] entity is soft deleted and not including deleted");
 
         return null;
       }
@@ -79,12 +72,9 @@ export abstract class FirestoreDAO<
 
     const entity = this.firestoreEntityFactory.fromSnapshot(docSnap);
 
-    this.logger?.debug({
-      status: "COMPLETED",
-      class: "FirestoreDAO",
-      method: "findByID",
-      collectionName: this.collection.path,
-    }, { entity });
+    this.logger?.debug("[FirestoreDAO findByID] completed", {
+      entity
+    });
 
     return entity;
   }
@@ -100,43 +90,34 @@ export abstract class FirestoreDAO<
 
     criteria.limitResults(1);
 
-    this.logger?.debug({
-      status: "STARTED",
-      class: "FirestoreDAO",
-      method: "findOneBy",
-      collectionName: this.collection.path,
-    }, { criteria, uow });
+    this.logger?.debug("[FirestoreDAO findOneBy] started", {
+      criteria,
+      uow,
+      includeDeleted,
+    });
 
     const querySnap = await FirestoreCriteriaQueryExecutor.execute(
       this.collection,
       criteria,
       uow,
       this.logger?.child({
-        status: 'IN_PROGRESS',
-        class: 'FirestoreDAO',
         method: 'findOneBy',
         collectionName: this.collection.path,
       }),
     );
 
-    this.logger?.debug({
-      status: "IN_PROGRESS",
-      class: "FirestoreDAO",
-      method: "findOneBy",
-      collectionName: this.collection.path,
-    }, { querySnap });
+    this.logger?.debug("[FirestoreDAO findOneBy] retrieved query snapshot", {
+      querySnap,
+    });
 
     if (querySnap.empty) return null;
 
     const docSnap = querySnap.docs[0]!;
     const entity = this.firestoreEntityFactory.fromSnapshot(docSnap);
 
-    this.logger?.debug({
-      status: "COMPLETED",
-      class: "FirestoreDAO",
-      method: "findOneBy",
-      collectionName: this.collection.path,
-    }, { entity });
+    this.logger?.debug("[FirestoreDAO findOneBy] completed", {
+      entity
+    });
 
     return entity;
   }
@@ -153,12 +134,10 @@ export abstract class FirestoreDAO<
 
     let querySnap;
 
-    this.logger?.debug({
-      status: "STARTED",
-      class: "FirestoreDAO",
-      method: "getAll",
-      collectionName: this.collection.path,
-    }, { uow });
+    this.logger?.debug("[FirestoreDAO getAll] started", {
+      uow,
+      includeDeleted,
+    });
 
     if (uow && uow instanceof FirestoreTransactionUnitOfWork) {
       querySnap = await uow.getQuery(query);
@@ -166,23 +145,17 @@ export abstract class FirestoreDAO<
       querySnap = await query.get();
     }
 
-    this.logger?.debug({
-      status: "IN_PROGRESS",
-      class: "FirestoreDAO",
-      method: "getAll",
-      collectionName: this.collection.path,
-    }, { querySnap });
+    this.logger?.debug("[FirestoreDAO getAll] retrieved query snapshot", {
+      querySnap,
+    });
 
     if (querySnap.empty) return [];
 
     const entities = this.firestoreEntityFactory.fromSnapshots(querySnap.docs);
 
-    this.logger?.debug({
-      status: "COMPLETED",
-      class: "FirestoreDAO",
-      method: "getAll",
-      collectionName: this.collection.path,
-    }, { entities });
+    this.logger?.debug("[FirestoreDAO getAll] completed", {
+      entities,
+    });
 
     return entities;
   }
@@ -196,42 +169,33 @@ export abstract class FirestoreDAO<
       criteria.where("is_deleted", "EQUAL", false);
     }
     
-    this.logger?.debug({
-      status: "STARTED",
-      class: "FirestoreDAO",
-      method: "search",
-      collectionName: this.collection.path,
-    }, { criteria, uow });
+    this.logger?.debug("[FirestoreDAO search] started", {
+      criteria,
+      uow,
+      includeDeleted,
+    });
     
     const querySnap = await FirestoreCriteriaQueryExecutor.execute(
       this.collection,
       criteria,
       uow,
       this.logger?.child({
-        status: 'IN_PROGRESS',
-        class: 'FirestoreDAO',
         method: 'search',
         collectionName: this.collection.path,
       }),
     );
 
-    this.logger?.debug({
-      status: "IN_PROGRESS",
-      class: "FirestoreDAO",
-      method: "search",
-      collectionName: this.collection.path,
-    }, { querySnap });
+    this.logger?.debug("[FirestoreDAO search] retrieved query snapshot", {
+      querySnap,
+    });
 
     if (querySnap.empty) return [];
 
     const entities = this.firestoreEntityFactory.fromSnapshots(querySnap.docs);
 
-    this.logger?.debug({
-      status: "COMPLETED",
-      class: "FirestoreDAO",
-      method: "search",
-      collectionName: this.collection.path,
-    }, { entities });
+    this.logger?.debug("[FirestoreDAO search] completed", {
+      entities,
+    });
 
     return entities;
   }
@@ -241,12 +205,11 @@ export abstract class FirestoreDAO<
     uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork,
     includeDeleted = false,
   ): Promise<number> {
-    this.logger?.debug({
-      status: "STARTED",
-      class: "FirestoreDAO",
-      method: "countBy",
-      collectionName: this.collection.path,
-    }, { criteria, uow, includeDeleted });
+    this.logger?.debug("[FirestoreDAO countBy] started", {
+      criteria,
+      uow,
+      includeDeleted,
+    });
 
     if (this.deleteMode === "SOFT" && !includeDeleted) {
       criteria.where("is_deleted", "EQUAL", false);
@@ -257,19 +220,14 @@ export abstract class FirestoreDAO<
       criteria,
       uow,
       this.logger?.child({
-        status: 'IN_PROGRESS',
-        class: 'FirestoreDAO',
         method: 'countBy',
         collectionName: this.collection.path,
       }),
     );
 
-    this.logger?.debug({
-      status: "COMPLETED",
-      class: "FirestoreDAO",
-      method: "countBy",
-      collectionName: this.collection.path,
-    }, { querySnap });
+    this.logger?.debug("[FirestoreDAO countBy] retrieved query snapshot", {
+      querySnap,
+    });
 
     return querySnap.size;
   }
@@ -279,21 +237,17 @@ export abstract class FirestoreDAO<
       typeof entity.id.value === "string" ? entity.id.value : entity.id.value!.toString(),
     );
 
-    this.logger?.debug({
-      status: "STARTED",
-      class: "FirestoreDAO",
-      method: "create",
-      collectionName: this.collection.path,
-    }, { entity, uow, docRef });
+    this.logger?.debug("[FirestoreDAO create] started", {
+      entity,
+      uow,
+      docRef,
+    });
 
     const data = EntityFirestoreFactory.fromEntity(entity);
 
-    this.logger?.debug({
-      status: "IN_PROGRESS",
-      class: "FirestoreDAO",
-      method: "create",
-      collectionName: this.collection.path,
-    }, { data });
+    this.logger?.debug("[FirestoreDAO create] created document data", {
+      data,
+    });
 
     if (this.deleteMode === "SOFT") {
       data.is_deleted = false;
@@ -306,12 +260,7 @@ export abstract class FirestoreDAO<
       await docRef.create(data);
     }
 
-    this.logger?.debug({
-      status: "COMPLETED",
-      class: "FirestoreDAO",
-      method: "create",
-      collectionName: this.collection.path,
-    });
+    this.logger?.debug("[FirestoreDAO create] completed");
 
     return entity;
   }
@@ -321,21 +270,17 @@ export abstract class FirestoreDAO<
       typeof entity.id.value === "string" ? entity.id.value : entity.id.value!.toString()
     );
 
-    this.logger?.debug({
-      status: "STARTED",
-      class: "FirestoreDAO",
-      method: "update",
-      collectionName: this.collection.path,
-    }, { entity, uow, docRef });
+    this.logger?.debug("[FirestoreDAO update] started", {
+      entity,
+      uow,
+      docRef,
+    });
 
     const data = EntityFirestoreFactory.fromEntity(entity);
 
-    this.logger?.debug({
-      status: "IN_PROGRESS",
-      class: "FirestoreDAO",
-      method: "update",
-      collectionName: this.collection.path,
-    }, { data });
+    this.logger?.debug("[FirestoreDAO update] created document data", {
+      data,
+    });
 
     if (this.deleteMode === "SOFT") {
       data.is_deleted = false;
@@ -348,12 +293,7 @@ export abstract class FirestoreDAO<
       await docRef.update(data);
     }
 
-    this.logger?.debug({
-      status: "COMPLETED",
-      class: "FirestoreDAO",
-      method: "update",
-      collectionName: this.collection.path,
-    });
+    this.logger?.debug("[FirestoreDAO update] completed");
 
     return entity;
   }
@@ -363,12 +303,11 @@ export abstract class FirestoreDAO<
       typeof entity.id.value === "string" ? entity.id.value : entity.id.value!.toString()
     );
 
-    this.logger?.debug({
-      status: "STARTED",
-      class: "FirestoreDAO",
-      method: "delete",
-      collectionName: this.collection.path,
-    }, { entity, uow, docRef });
+    this.logger?.debug("[FirestoreDAO delete] started", {
+      entity,
+      uow,
+      docRef,
+    });
 
     if (uow) {
       if (this.deleteMode === "HARD") {
@@ -392,57 +331,44 @@ export abstract class FirestoreDAO<
       }
     }
 
-    this.logger?.debug({
-      status: "COMPLETED",
-      class: "FirestoreDAO",
-      method: "delete",
-      collectionName: this.collection.path,
-    });
+    this.logger?.debug("[FirestoreDAO delete] completed", { entity });
 
     return entity;
   }
 
   async restore(entity: Entity, uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork): Promise<Entity> {
-    this.logger?.debug({
-      status: "STARTED",
-      class: "FirestoreDAO",
-      method: "restore",
-      collectionName: this.collection.path,
-    }, { entity, uow, deleteMode: this.deleteMode });
+    this.logger?.debug("[FirestoreDAO restore] started", {
+      entity,
+      uow,
+      deleteMode: this.deleteMode,
+    });
 
     if (this.deleteMode === "HARD") {
-      this.logger?.debug({
-        status: "COMPLETED",
-        class: "FirestoreDAO",
-        method: "update",
-        collectionName: this.collection.path,
-      });
-
-      return entity;
+      throw new EntityNotRecoverable();
     }
 
     const docRef = this.collection.doc(
       typeof entity.id.value === "string" ? entity.id.value : entity.id.value!.toString()
     );
 
-    this.logger?.debug({
-      status: "IN_PROGRESS",
-      class: "FirestoreDAO",
-      method: "restore",
-      collectionName: this.collection.path,
-    }, { docRef });
+    this.logger?.debug("[FirestoreDAO restore] found document", {
+      docRef,
+    });
 
     const data = EntityFirestoreFactory.fromEntity(entity);
 
-    this.logger?.debug({
-      status: "IN_PROGRESS",
-      class: "FirestoreDAO",
-      method: "restore",
-      collectionName: this.collection.path,
-    }, { data });
+    this.logger?.debug("[FirestoreDAO restore] created document data", {
+      data,
+    });
 
     data.is_deleted = false;
     data.deleted_at = null;
+
+    if (uow) {
+      uow.update(docRef, data);
+    } else {
+      await docRef.update(data);
+    }
 
     if ('is_deleted' in entity) {
       entity.is_deleted = false;
@@ -460,18 +386,7 @@ export abstract class FirestoreDAO<
       entity.deletedAt = null;
     }
 
-    if (uow) {
-      uow.update(docRef, data);
-    } else {
-      await docRef.update(data);
-    }
-
-    this.logger?.debug({
-      status: "COMPLETED",
-      class: "FirestoreDAO",
-      method: "update",
-      collectionName: this.collection.path,
-    });
+    this.logger?.debug("[FirestoreDAO restore] completed", { entity });
 
     return entity;
   }

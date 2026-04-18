@@ -15,113 +15,84 @@ export class FirestoreBatchUnitOfWork implements UnitOfWork {
     this.logger = logger;
   }
 
+  isActive(): boolean {
+    return this.active;
+  }
+
   async begin(): Promise<void> {
-    this.logger?.debug({
-      status: "STARTED",
-      class: "FirestoreBatchUnitOfWork",
-      method: "begin",
-    }, { active: this.active });
+    this.logger?.debug("[FirestoreBatchUnitOfWork begin] started");
 
     this.active = true;
 
-    this.logger?.debug({
-      status: "COMPLETED",
-      class: "FirestoreBatchUnitOfWork",
-      method: "begin",
-    }, { active: this.active });
+    this.logger?.debug("[FirestoreBatchUnitOfWork begin] completed");
   }
 
   async commit(): Promise<void> {
-    this.logger?.debug({
-      status: "STARTED",
-      class: "FirestoreBatchUnitOfWork",
-      method: "commit",
-    }, { active: this.active });
+    this.logger?.debug("[FirestoreBatchUnitOfWork commit] started", {
+      active: this.active,
+    });
 
-    if (!this.active) {
+    if (!this.isActive()) {
       throw new TransactionNotActive();
     }
 
-    this.logger?.debug({
-      status: "IN_PROGRESS",
-      class: "FirestoreBatchUnitOfWork",
-      method: "commit",
-    }, { batch: this.batch });
+    this.logger?.debug("[FirestoreBatchUnitOfWork commit] committing batch", {
+      batch: this.batch,
+    });
 
     await this.batch.commit();
     
     this.active = false;
 
-    this.logger?.debug({
-      status: "COMPLETED",
-      class: "FirestoreBatchUnitOfWork",
-      method: "commit",
-    }, { active: this.active });
+    this.logger?.debug("[FirestoreBatchUnitOfWork commit] completed", {
+      active: this.active,
+      batch: this.batch,
+    });
   }
 
   async rollback(): Promise<void> {
-    this.logger?.debug({
-      status: "STARTED",
-      class: "FirestoreBatchUnitOfWork",
-      method: "rollback",
-    }, { active: this.active, batch: this.batch });
+    this.logger?.debug("[FirestoreBatchUnitOfWork rollback] started", {
+      batch: this.batch,
+    });
 
     this.batch = this.firestore.batch();
     this.active = false;
 
-    this.logger?.debug({
-      status: "COMPLETED",
-      class: "FirestoreBatchUnitOfWork",
-      method: "rollback",
-    }, { active: this.active, batch: this.batch });
+    this.logger?.debug("[FirestoreBatchUnitOfWork rollback] completed", {
+      active: this.active,
+      batch: this.batch,
+    });
   }
 
   create(docRef: DocumentReference, data: DocumentData): void {
-    this.logger?.debug({
-      status: "STARTED",
-      class: "FirestoreBatchUnitOfWork",
-      method: "create",
-    }, { batch: this.batch });
+    this.logger?.debug("[FirestoreBatchUnitOfWork create] started", {
+      docRef,
+      data,
+    });
 
     this.batch.set(docRef, data);
 
-    this.logger?.debug({
-      status: "COMPLETED",
-      class: "FirestoreBatchUnitOfWork",
-      method: "create",
-    }, { batch: this.batch });
+    this.logger?.debug("[FirestoreBatchUnitOfWork create] completed");
   }
 
   update(docRef: DocumentReference, data: DocumentData): void {
-    this.logger?.debug({
-      status: "STARTED",
-      class: "FirestoreBatchUnitOfWork",
-      method: "update",
-    }, { batch: this.batch });
+    this.logger?.debug("[FirestoreBatchUnitOfWork update] started", {
+      docRef,
+      data,
+    });
 
     this.batch.update(docRef, data);
 
-    this.logger?.debug({
-      status: "COMPLETED",
-      class: "FirestoreBatchUnitOfWork",
-      method: "update",
-    }, { batch: this.batch });
+    this.logger?.debug("[FirestoreBatchUnitOfWork update] completed");
   }
 
   delete(docRef: DocumentReference): void {
-    this.logger?.debug({
-      status: "STARTED",
-      class: "FirestoreBatchUnitOfWork",
-      method: "delete",
-    }, { batch: this.batch });
+    this.logger?.debug("[FirestoreBatchUnitOfWork delete] started", {
+      docRef,
+    });
 
     this.batch.delete(docRef);
 
-    this.logger?.debug({
-      status: "COMPLETED",
-      class: "FirestoreBatchUnitOfWork",
-      method: "delete",
-    }, { batch: this.batch });
+    this.logger?.debug("[FirestoreBatchUnitOfWork delete] completed");
   }
 }
-
