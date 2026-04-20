@@ -85,10 +85,10 @@ export abstract class FirestoreDAO<
     includeDeleted = false,
   ): Promise<Entity | null> {
     if (this.deleteMode === "SOFT" && !includeDeleted) {
-      criteria.where("is_deleted", "EQUAL", false);
+      criteria = criteria.where("is_deleted", "EQUAL", false);
     }
 
-    criteria.limitResults(1);
+    criteria = criteria.limitResults(1);
 
     this.logger?.debug("[FirestoreDAO findOneBy] started", {
       criteria,
@@ -166,7 +166,7 @@ export abstract class FirestoreDAO<
     includeDeleted = false,
   ): Promise<Entity[]> {
     if (this.deleteMode === "SOFT" && !includeDeleted) {
-      criteria.where("is_deleted", "EQUAL", false);
+      criteria = criteria.where("is_deleted", "EQUAL", false);
     }
     
     this.logger?.debug("[FirestoreDAO search] started", {
@@ -205,15 +205,15 @@ export abstract class FirestoreDAO<
     uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork,
     includeDeleted = false,
   ): Promise<number> {
+    if (this.deleteMode === "SOFT" && !includeDeleted) {
+      criteria = criteria.where("is_deleted", "EQUAL", false);
+    }
+
     this.logger?.debug("[FirestoreDAO countBy] started", {
       criteria,
       uow,
       includeDeleted,
     });
-
-    if (this.deleteMode === "SOFT" && !includeDeleted) {
-      criteria.where("is_deleted", "EQUAL", false);
-    }
     
     const querySnap = await FirestoreCriteriaQueryExecutor.execute(
       this.collection,
