@@ -135,7 +135,7 @@ export class FirestoreCriteriaQueryExecutor {
       }
 
       if (criteria.offset) {
-        queryRef = queryRef.startAfter(criteria.offset);
+        queryRef = queryRef.offset(criteria.offset);
       }
 
       if (uow && uow instanceof FirestoreTransactionUnitOfWork) {
