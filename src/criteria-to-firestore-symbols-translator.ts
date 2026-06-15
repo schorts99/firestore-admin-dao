@@ -22,6 +22,10 @@ export class CriteriaToFirestoreSymbolsTranslator {
         return "in";
       case "NOT_IN":
         return "not-in";
+			case "ARRAY_CONTAINS":
+        return "array-contains";
+      case "ARRAY_CONTAINS_ANY":
+        return "array-contains-any";
       default:
         throw new OperatorNotValid(`operator: ${operator}`);
     }
