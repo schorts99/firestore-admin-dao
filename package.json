@@ -1,6 +1,6 @@
 {
   "name": "@schorts/firestore-admin-dao",
-  "version": "5.1.0",
+  "version": "4.4.2",
   "description": "This module provides a type-safe, domain-driven abstraction over Firestore persistence. It integrates tightly with the `Model`, `Entity`, `Criteria` and `UnitOfWork` constructs from the Shared Kernel, enabling expressive, consistent, and testable data access across bounded contexts.",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
@@ -53,7 +53,7 @@
   },
   "homepage": "https://github.com/schorts99/firestore-admin-dao#readme",
   "dependencies": {
-    "firebase-admin": "^14.0.0",
+    "firebase-admin": "^13.10.0",
     "geofire-common": "^6.0.0"
   },
   "peerDependencies": {
