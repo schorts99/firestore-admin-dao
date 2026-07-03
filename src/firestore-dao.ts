@@ -200,6 +200,42 @@ export abstract class FirestoreDAO<
     return entities;
   }
 
+  async count(
+    uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork,
+    includeDeleted = false,
+  ): Promise<number> {
+    let query = this.collection.limit(1000);
+
+    if (this.deleteMode === "SOFT" && !includeDeleted) {
+      query = query.where("is_deleted", "==", false);
+    }
+
+    let querySnap;
+
+    this.logger?.debug("[FirestoreDAO count] started", {
+      uow,
+      includeDeleted,
+    });
+
+    if (uow && uow instanceof FirestoreTransactionUnitOfWork) {
+      querySnap = await uow.getQuery(query);
+    } else {
+      querySnap = await query.get();
+    }
+
+    this.logger?.debug("[FirestoreDAO count] retrieved query snapshot", {
+      querySnap,
+    });
+
+    const count = querySnap.size;
+
+    this.logger?.debug("[FirestoreDAO count] completed", {
+      count,
+    });
+
+    return count;
+  }
+
   async countBy(
     criteria: Criteria,
     uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork,
