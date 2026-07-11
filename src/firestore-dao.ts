@@ -373,17 +373,17 @@ export abstract class FirestoreDAO<
   }
 
   async exists(
-    id: Entity["id"]["value"],
+    criteria: Criteria,
     uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork,
     includeDeleted = false,
   ): Promise<boolean> {
     this.logger?.debug("[FirestoreDAO exists] started", {
-      id,
+      criteria,
       uow,
       includeDeleted,
     });
 
-    const entity = await this.findByID(id, uow, includeDeleted);
+    const entity = await this.findOneBy(criteria, uow);
 
     this.logger?.debug("[FirestoreDAO exists] completed", {
       entity,
