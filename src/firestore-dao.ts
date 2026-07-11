@@ -19,7 +19,7 @@ import { EntityNotRecoverable } from "./exceptions";
 export abstract class FirestoreDAO<
   M extends Model,
   Entity extends BaseEntity<ValueObject, M>
-> extends DAO<M, Entity, true> {
+> extends DAO<M, Entity> {
   private readonly collection: CollectionReference;
   private readonly firestoreEntityFactory: FirestoreEntityFactory<Entity>;
   private readonly logger: Logger | undefined;
