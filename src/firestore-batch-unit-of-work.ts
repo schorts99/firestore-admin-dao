@@ -1,7 +1,7 @@
 import { Firestore, WriteBatch, DocumentReference, DocumentData } from "firebase-admin/firestore";
 import { UnitOfWork, type Logger } from "@schorts/shared-kernel";
 
-import { TransactionNotActive } from "./exceptions";
+import { TransactionNotActive } from "./exceptions/index.js";
 
 export class FirestoreBatchUnitOfWork implements UnitOfWork {
   private readonly firestore: Firestore;

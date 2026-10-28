@@ -21,6 +21,8 @@ module.exports = {
   coverageReporters: ["text", "lcov", "html"],
   moduleNameMapper: {
     "^@schorts/firestore-admin-dao/(.*)$": "<rootDir>/src/$1",
+    // src imports siblings with .js extensions, as Node's ES modules require.
+    "^(\\.{1,2}/.*)\\.js$": "$1",
   },
 };
   

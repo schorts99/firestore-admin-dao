@@ -9,13 +9,13 @@ import {
   DeleteMode,
 } from "@schorts/shared-kernel";
 
-import { FirestoreCriteriaQueryExecutor } from "./firestore-criteria-query-executor";
-import { FirestoreEntityFactory } from "./firestore-entity-factory";
-import { FirestoreBatchUnitOfWork } from "./firestore-batch-unit-of-work";
-import { FirestoreTransactionUnitOfWork } from "./firestore-transaction-unit-of-work";
-import { EntityFirestoreFactory } from "./entity-firestore-factory";
-import { EntityNotRecoverable } from "./exceptions";
-import { entityId, entityIds, unitOfWorkKind } from "./log-context";
+import { FirestoreCriteriaQueryExecutor } from "./firestore-criteria-query-executor.js";
+import { FirestoreEntityFactory } from "./firestore-entity-factory.js";
+import { FirestoreBatchUnitOfWork } from "./firestore-batch-unit-of-work.js";
+import { FirestoreTransactionUnitOfWork } from "./firestore-transaction-unit-of-work.js";
+import { EntityFirestoreFactory } from "./entity-firestore-factory.js";
+import { EntityNotRecoverable } from "./exceptions/index.js";
+import { entityId, entityIds, unitOfWorkKind } from "./log-context.js";
 
 export abstract class FirestoreDAO<
   M extends Model,

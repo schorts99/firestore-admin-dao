@@ -1,7 +1,7 @@
 import { CollectionReference, DocumentSnapshot, FieldPath, Query } from "firebase-admin/firestore";
 import { Logger } from "@schorts/shared-kernel";
 
-import { FirestoreBatchUnitOfWork } from './firestore-batch-unit-of-work';
+import { FirestoreBatchUnitOfWork } from './firestore-batch-unit-of-work.js';
 
 /**
  * Documents read, and updates committed, per page. Paging keeps memory flat on large

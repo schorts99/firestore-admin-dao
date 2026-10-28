@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Breaking:** Requires `@schorts/shared-kernel` 11.x.
+- **Breaking:** Requires Node.js 22 or later (declared in `engines`), as `firebase-admin` 14 does.
+- The ES module build is real ES modules. Before, `dist/esm` held CommonJS, so ES module apps loaded a second copy of the kernel: entity dates were not stored as `Timestamp`s, geohashes were not written, and reads failed with `EntityNotRegistered`.
+- README examples rewritten for Shared Kernel 11; they are type-checked with the AI docs.
+- The package ships the LGPL `LICENSE` and the GPL `COPYING` it references.
 - Updated `firebase-admin` to 14.x.
 - `GEO_RADIUS` filters accept every value shape the Shared Kernel defines: a `center` or an inline point, with `radiusInM`, `radius`, `radiusMeters` or `radiusInKm`. A value without a usable center or radius throws `OperatorNotValid`.
 

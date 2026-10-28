@@ -1,10 +1,11 @@
-// Type-checks every ```ts block in ai/ against this package's source.
+// Type-checks every ```ts block in ai/ and README.md against this package's ES module build
+// (run `npm run build` first), as an ES module consumer would compile them.
 //
 // A block that starts with `// file: <path>` is written to that path inside its document's
 // folder, so blocks of one document can import each other. Other blocks become standalone
 // snippets. Blocks fenced as ```ts no-check are skipped.
 import { execFileSync } from "node:child_process";
-import { mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -20,12 +21,19 @@ function markdownFiles(dir) {
   });
 }
 
+const types = join(root, "dist/esm/index.d.ts");
+
+if (!existsSync(types)) {
+  console.error("dist/esm/index.d.ts is missing. Run `npm run build` first.");
+  process.exit(1);
+}
+
 rmSync(outDir, { recursive: true, force: true });
 
 let blocks = 0;
 
-for (const doc of markdownFiles(docsDir)) {
-  const docOut = join(outDir, relative(docsDir, doc).replace(/\.md$/, "").replace(/[\\/]/g, "__"));
+for (const doc of [...markdownFiles(docsDir), join(root, "README.md")]) {
+  const docOut = join(outDir, relative(root, doc).replace(/\.md$/, "").replace(/[\\/]/g, "__"));
   const fence = /^```ts([^\n]*)\n([\s\S]*?)^```$/gm;
   let match;
   let snippet = 0;
@@ -43,6 +51,8 @@ for (const doc of markdownFiles(docsDir)) {
   }
 }
 
+writeFileSync(join(outDir, "package.json"), JSON.stringify({ type: "module" }));
+
 writeFileSync(
   join(outDir, "tsconfig.json"),
   JSON.stringify(
@@ -56,7 +66,7 @@ writeFileSync(
         skipLibCheck: true,
         isolatedModules: true,
         types: ["jest", "node"],
-        paths: { "@schorts/firestore-admin-dao": [join(root, "src/index.ts")] },
+        paths: { "@schorts/firestore-admin-dao": [types] },
       },
       include: ["**/*.ts"],
     },
@@ -67,8 +77,8 @@ writeFileSync(
 
 try {
   execFileSync(join(root, "node_modules/.bin/tsc"), ["-p", join(outDir, "tsconfig.json")], { stdio: "inherit" });
-  console.log(`Type-checked ${blocks} TypeScript blocks in ai/.`);
+  console.log(`Type-checked ${blocks} TypeScript blocks in ai/ and README.md.`);
 } catch {
-  console.error(`Type errors in ai/ examples. Generated files are in ${relative(root, outDir)}/.`);
+  console.error(`Type errors in documentation examples. Generated files are in ${relative(root, outDir)}/.`);
   process.exit(1);
 }

@@ -7,23 +7,33 @@
   "types": "./dist/types/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/esm/index.js",
-      "require": "./dist/cjs/index.js",
-      "types": "./dist/types/index.d.ts"
+      "import": {
+        "types": "./dist/esm/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
     }
   },
   "scripts": {
+    "prebuild": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\"",
     "build:cjs": "tsc --project tsconfig.cjs.json",
-    "build:esm": "tsc --project tsconfig.esm.json",
+    "build:esm": "tsc --project tsconfig.esm.json && node scripts/mark-esm-build.mjs",
     "build": "npm run build:cjs && npm run build:esm",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:ci": "jest --ci --coverage --watchAll=false",
-    "check:ai-docs": "node scripts/check-ai-docs.mjs"
+    "check:ai-docs": "npm run build && node scripts/check-ai-docs.mjs",
+    "prepublishOnly": "npm test && npm run check:ai-docs"
   },
   "author": "Jorge Castillo (https://github.com/schorts99)",
   "license": "LGPL-3.0-or-later",
+  "engines": {
+    "node": ">=22"
+  },
   "devDependencies": {
     "@jest/globals": "^30.1.2",
     "@schorts/shared-kernel": "^11.0.0",

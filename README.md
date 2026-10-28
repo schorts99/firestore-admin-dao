@@ -1,4 +1,3 @@
-
 # @schorts/firestore-admin-dao
 
 [![npm version](https://badge.fury.io/js/%40schorts%2Ffirestore-admin-dao.svg)](https://badge.fury.io/js/%40schorts%2Ffirestore-admin-dao)
@@ -9,7 +8,7 @@ This module provides a type-safe, domain-driven abstraction over Firestore persi
 
 The package ships agent docs in `node_modules/@schorts/firestore-admin-dao/ai/`: an `AGENTS.md` overview, rules (entity mapping, querying, transactions, soft delete, testing), and step-by-step skills (create a DAO, geo search, transactions and batches, soft delete, testing, upgrading to 6.x) with type-checked examples. They build on the shared kernel's docs. Point your agent at both, for example in `CLAUDE.md`:
 
-```md
+```md no-check
 Before writing code that uses @schorts/firestore-admin-dao, read
 node_modules/@schorts/shared-kernel/ai/AGENTS.md, then
 node_modules/@schorts/firestore-admin-dao/ai/AGENTS.md, and follow their rules and skills.
@@ -19,11 +18,13 @@ node_modules/@schorts/firestore-admin-dao/ai/AGENTS.md, and follow their rules a
 
 ## Installation
 
-This package has a peer dependency on `@schorts/shared-kernel`.
+This package has a peer dependency on `@schorts/shared-kernel` 11.x and requires Node.js 22 or later (a requirement of `firebase-admin` 14).
 
 ```bash
 npm install @schorts/firestore-admin-dao @schorts/shared-kernel
 ```
+
+It works from both ES modules and CommonJS.
 
 ## Usage
 
@@ -31,123 +32,151 @@ Here's a complete example of how to use the `FirestoreDAO` to interact with a co
 
 ### 1. Initialize Firebase Admin
 
-```typescript
-import { initializeApp, getFirestore, cert, Firestore } from '@schorts/firestore-admin-dao';
+With no arguments, `initializeApp()` uses Application Default Credentials, or the Firestore emulator when `FIRESTORE_EMULATOR_HOST` is set. Pass `credential: cert(serviceAccount)` to use a service account key instead.
 
-// This is your Firebase service account key file
-const serviceAccount = require('./serviceAccountKey.json');
+```ts
+// file: firebase.ts
+import { getApps, getFirestore, initializeApp } from "@schorts/firestore-admin-dao";
 
-const app = initializeApp({
-  credential: cert(serviceAccount),
-});
+const app = getApps()[0] ?? initializeApp();
 
-const firestore = getFirestore(app);
+export const firestore = getFirestore(app);
 ```
 
-### 2. Define your Entity
+### 2. Define your entity
 
-The `Entity` class is responsible for mapping between its properties and a plain object for persistence. It must implement `toPrimitives()` and a static `fromPrimitives()`. Note that `BaseModel` and `Entity` are imported from `@schorts/shared-kernel`.
+An entity extends the kernel's `Entity` and implements `toPrimitives()`. `createId` and `restoreFromPrimitives` let the kernel rebuild it from a stored document.
 
-```typescript
-import { EntityRegistry } from "@schorts/firestore-admin-dao";
-import { Entity as BaseEntity, Model as BaseModel, UUIDValue } from "@schorts/shared-kernel";
+- The document is `toPrimitives()` without `id`; the document ID is the entity ID.
+- `Date` and `DateValue` properties are stored as Firestore `Timestamp`s, under the property name in snake_case (`createdAt` → `created_at`). Name the model field the same way. They come back as ISO strings.
 
-// This interface is a plain object representation of your entity.
-interface MyEntityModel extends BaseModel {
-  name: string;
-  aNumber: number;
+```ts
+// file: task.ts
+import { Entity } from "@schorts/shared-kernel/entities";
+import { DateValue, UUIDValue } from "@schorts/shared-kernel/value-objects";
+
+export class TaskId extends UUIDValue {
+  readonly attributeName = "taskId";
 }
 
-// This is your domain entity.
-class MyEntity extends BaseEntity<UUIDValue, MyEntityModel> {
+export class CreatedAt extends DateValue {
+  readonly attributeName = "createdAt";
+}
+
+export type TaskModel = {
+  id: string;
+  title: string;
+  priority: number;
+  done: boolean;
+  created_at: string;
+};
+
+export class Task extends Entity<TaskId, TaskModel> {
   constructor(
-    id: UUIDValue,
-    public readonly name: string,
-    public readonly aNumber: number,
+    id: TaskId,
+    public title = "",
+    public priority = 0,
+    public done = false,
+    public createdAt = new CreatedAt(new Date()),
   ) {
     super(id);
   }
 
-  // Converts the entity to a plain object for Firestore.
-  toPrimitives(): MyEntityModel {
+  toPrimitives(): TaskModel {
     return {
       id: this.id.value,
-      name: this.name,
-      aNumber: this.aNumber,
+      title: this.title,
+      priority: this.priority,
+      done: this.done,
+      created_at: this.createdAt.value.toISOString(),
     };
   }
 
-  // Creates an entity instance from a plain object retrieved from Firestore.
-  static fromPrimitives<Model extends BaseModel>(model: Model): MyEntity {
-    return new MyEntity(
-      new UUIDValue(model.id),
-      model.name,
-      model.aNumber,
-    );
+  protected override createId(rawId: unknown): TaskId {
+    return new TaskId(String(rawId));
+  }
+
+  protected override restoreFromPrimitives(data: TaskModel): void {
+    this.title = data.title;
+    this.priority = data.priority;
+    this.done = data.done;
+    this.createdAt = new CreatedAt(new Date(data.created_at));
   }
 }
-
-// Register the entity with a collection name. This is crucial!
-EntityRegistry.register("my-entities", MyEntity);
-
 ```
 
 ### 3. Create a concrete DAO class
 
-`FirestoreDAO` is abstract. Create a concrete class for your entity that extends it. Its constructor must pass a Firestore `CollectionReference` to the `super()` call.
+`FirestoreDAO` is abstract. Extend it with your collection and register the entity under the collection's path, so the DAO can rebuild entities when it reads.
 
-```typescript
-import { FirestoreDAO } from '@schorts/firestore-admin-dao';
+```ts
+// file: task-dao.ts
+import { EntityRegistry, FirestoreDAO, type CollectionReference } from "@schorts/firestore-admin-dao";
+import { Criteria } from "@schorts/shared-kernel/criteria";
+import { Task, type TaskModel } from "./task.js";
 
-class MyEntityDAO extends FirestoreDAO<MyEntityModel, MyEntity> {
-  constructor(firestore: Firestore) {
-    // The string passed to 'collection' is the name of your Firestore collection
-    super(firestore.collection("my-entities"));
+export const TASKS = "tasks";
+
+EntityRegistry.register(TASKS, Task);
+
+export class TaskDAO extends FirestoreDAO<TaskModel, Task> {
+  constructor(collection: CollectionReference) {
+    // "HARD" removes deleted documents; "SOFT" flags them so they can be restored.
+    super(collection, "HARD");
+  }
+
+  findOpenByPriority(limit = 20): Promise<Task[]> {
+    return this.search(
+      Criteria.none()
+        .where("done", "EQUAL", false)
+        .orderBy("priority", "DESC")
+        .limitResults(limit),
+    );
   }
 }
 ```
 
-### 4. Use the DAO for CRUD Operations
+### 4. Use the DAO
 
-Now you can use your DAO to interact with Firestore. The `Criteria` class uses a fluent interface (builder pattern) to construct queries.
+```ts
+// file: main.ts
+import { randomUUID } from "node:crypto";
+import { Criteria } from "@schorts/shared-kernel/criteria";
+import { firestore } from "./firebase.js";
+import { Task, TaskId } from "./task.js";
+import { TASKS, TaskDAO } from "./task-dao.js";
 
-```typescript
-import { Criteria, Operator, Direction, UUIDValue } from '@schorts/shared-kernel';
+const tasks = new TaskDAO(firestore.collection(TASKS));
 
-async function main() {
-  const dao = new MyEntityDAO(firestore);
+// Create
+const task = new Task(new TaskId(randomUUID()), "Write the release notes", 2);
+await tasks.create(task);
 
-  // Create a new entity
-  const entityId = UUIDValue.generate();
-  const entity = new MyEntity(entityId, 'My Awesome Entity', 42);
-  await dao.create(entity);
-  console.log('Entity created with id:', entity.id.value);
+// Read
+const found = await tasks.findByID(task.id.value);
+const urgent = await tasks.search(
+  Criteria.none().where("priority", "GREATER_THAN_OR_EQUAL", 2).orderBy("priority", "DESC"),
+);
+const open = await tasks.findOpenByPriority();
+const total = await tasks.count();
 
-  // Find an entity using the Criteria builder
-  const criteria = new Criteria()
-    .where('name', Operator.EQUAL, 'My Awesome Entity')
-    .orderBy('aNumber', Direction.DESC)
-    .limitResults(1);
-
-  const foundEntity = await dao.findOneBy(criteria);
-  console.log('Entity found:', foundEntity?.toPrimitives());
-
-  // Update the entity
-  if (foundEntity) {
-    const updatedEntity = new MyEntity(foundEntity.id, 'My Updated Entity', 100);
-    await dao.update(updatedEntity);
-    console.log('Entity updated:', updatedEntity.toPrimitives());
-  } 
-
-  // Delete the entity
-  if (foundEntity) {
-    await dao.delete(foundEntity);
-    console.log('Entity deleted');
-  }
+// Update
+if (found) {
+  found.done = true;
+  await tasks.update(found);
 }
 
-main();
+// Delete
+await tasks.delete(task);
+
+console.log({ urgent: urgent.length, open: open.length, total });
 ```
+
+Every method also takes an optional unit of work to group writes. Use `FirestoreUnitOfWorkRunner` for transactions and `FirestoreBatchUnitOfWork` for batched writes.
+
+Supported `Criteria` operators are `EQUAL`, `NOT_EQUAL`, `GREATER_THAN`, `GREATER_THAN_OR_EQUAL`, `LESS_THAN`, `LESS_THAN_OR_EQUAL`, `IN`, `NOT_IN`, `ARRAY_CONTAINS`, `ARRAY_CONTAINS_ANY`, and `GEO_RADIUS`. `LIKE` and `BETWEEN` throw `OperatorNotValid`.
+
+The [`ai/`](ai/AGENTS.md) docs cover entity mapping, querying and indexes, geo search, transactions and batches, soft delete, and testing in detail.
 
 ## Contributing
 

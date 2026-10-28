@@ -8,11 +8,11 @@ import {
 import { geohashQueryBounds, distanceBetween } from "geofire-common";
 import { Criteria, Logger, Order, readGeoRadius } from "@schorts/shared-kernel";
 
-import { CriteriaToFirestoreSymbolsTranslator } from "./criteria-to-firestore-symbols-translator";
-import { FirestoreBatchUnitOfWork } from "./firestore-batch-unit-of-work";
-import { FirestoreTransactionUnitOfWork } from "./firestore-transaction-unit-of-work";
-import { OperatorNotValid } from "./exceptions";
-import { unitOfWorkKind } from "./log-context";
+import { CriteriaToFirestoreSymbolsTranslator } from "./criteria-to-firestore-symbols-translator.js";
+import { FirestoreBatchUnitOfWork } from "./firestore-batch-unit-of-work.js";
+import { FirestoreTransactionUnitOfWork } from "./firestore-transaction-unit-of-work.js";
+import { OperatorNotValid } from "./exceptions/index.js";
+import { unitOfWorkKind } from "./log-context.js";
 
 export class FirestoreCriteriaQueryExecutor {
   static async execute(

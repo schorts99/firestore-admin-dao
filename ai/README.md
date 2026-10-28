@@ -11,7 +11,7 @@ node_modules/@schorts/firestore-admin-dao/ai/
 
 They build on the shared kernel's docs in `node_modules/@schorts/shared-kernel/ai/`, which cover entities, value objects, criteria, and DAOs in general. Set up both.
 
-Every TypeScript example is type-checked against the package source before each release (`npm run check:ai-docs`).
+Every TypeScript example is type-checked against the built package, as an ES module consumer, before each release (`npm run check:ai-docs`).
 
 ## Set it up
 

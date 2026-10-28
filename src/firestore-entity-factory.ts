@@ -1,8 +1,8 @@
 import { DocumentSnapshot } from "firebase-admin/firestore";
 import { EntityRegistry, type Logger } from "@schorts/shared-kernel";
 
-import { FirestoreTypesToPrimitivesFormatter } from "./firestore-types-to-primitives-formatter";
-import { entityId, entityIds } from "./log-context";
+import { FirestoreTypesToPrimitivesFormatter } from "./firestore-types-to-primitives-formatter.js";
+import { entityId, entityIds } from "./log-context.js";
 
 export class FirestoreEntityFactory<Entity> {
   constructor(

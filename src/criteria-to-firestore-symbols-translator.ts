@@ -1,7 +1,7 @@
 import { FieldPath, Timestamp, WhereFilterOp, OrderByDirection } from "firebase-admin/firestore";
 import { Operator, Order } from "@schorts/shared-kernel";
 
-import { OperatorNotValid, OrderNotValid } from "./exceptions";
+import { OperatorNotValid, OrderNotValid } from "./exceptions/index.js";
 
 export class CriteriaToFirestoreSymbolsTranslator {
   static translateOperator(operator: Operator): WhereFilterOp {

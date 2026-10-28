@@ -1,7 +1,7 @@
 import { Firestore } from "firebase-admin/firestore";
 import { UnitOfWorkRunner } from "@schorts/shared-kernel";
 
-import { FirestoreTransactionUnitOfWork } from "./firestore-transaction-unit-of-work";
+import { FirestoreTransactionUnitOfWork } from "./firestore-transaction-unit-of-work.js";
 
 export class FirestoreUnitOfWorkRunner implements UnitOfWorkRunner {
   constructor(private readonly firestore: Firestore) {}
