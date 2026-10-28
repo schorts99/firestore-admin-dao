@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.0.0] - 2026-10-28
+
+### Changed
+
+- **Breaking:** Requires `@schorts/shared-kernel` 11.x.
+- Updated `firebase-admin` to 14.x.
+- `GEO_RADIUS` filters accept every value shape the Shared Kernel defines: a `center` or an inline point, with `radiusInM`, `radius`, `radiusMeters` or `radiusInKm`. A value without a usable center or radius throws `OperatorNotValid`.
+
+### Added
+
+- Unit tests.
+
+### Fixed
+
+- `exists` now honors `includeDeleted` instead of always excluding soft deleted documents.
+
 ## [4.5.0] - 2026-07-02
 
 ### Added

@@ -5,11 +5,12 @@ import {
   QuerySnapshot,
 } from "firebase-admin/firestore";
 import { geohashQueryBounds, distanceBetween } from "geofire-common";
-import { Criteria, Logger } from "@schorts/shared-kernel";
+import { Criteria, Logger, readGeoRadius } from "@schorts/shared-kernel";
 
 import { CriteriaToFirestoreSymbolsTranslator } from "./criteria-to-firestore-symbols-translator";
 import { FirestoreBatchUnitOfWork } from "./firestore-batch-unit-of-work";
 import { FirestoreTransactionUnitOfWork } from "./firestore-transaction-unit-of-work";
+import { OperatorNotValid } from "./exceptions";
 
 export class FirestoreCriteriaQueryExecutor {
   static async execute(
@@ -27,7 +28,14 @@ export class FirestoreCriteriaQueryExecutor {
 
     if (geoFilter) {
       const geoField = geoFilter.field;
-      const { center, radiusInM } = geoFilter.value;
+      const geoRadius = readGeoRadius(geoFilter.value);
+
+      if (!geoRadius) {
+        throw new OperatorNotValid(`GEO_RADIUS on "${geoField}" needs a center and a radius`);
+      }
+
+      const center: [number, number] = [geoRadius.lat, geoRadius.lng];
+      const { radiusInM } = geoRadius;
       const bounds = geohashQueryBounds(center, radiusInM);
       const promises: Promise<QuerySnapshot>[] = [];
 

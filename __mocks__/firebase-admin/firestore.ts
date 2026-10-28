@@ -27,16 +27,18 @@ export function writeBatch(firestore: any) {
 }
 
 export class Timestamp {
+  constructor(private readonly date: Date = new Date()) {}
+
   static now() {
     return new Timestamp();
   }
 
   toDate() {
-    return new Date();
+    return this.date;
   }
 
   static fromDate(date: Date) {
-    return { __timestamp: true, date };
+    return new Timestamp(date);
   }
 }
 

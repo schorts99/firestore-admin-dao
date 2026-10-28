@@ -383,7 +383,7 @@ export abstract class FirestoreDAO<
       includeDeleted,
     });
 
-    const entity = await this.findOneBy(criteria, uow);
+    const entity = await this.findOneBy(criteria, uow, includeDeleted);
 
     this.logger?.debug("[FirestoreDAO exists] completed", {
       entity,
