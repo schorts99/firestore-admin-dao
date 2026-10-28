@@ -1,11 +1,12 @@
 import type { DocumentReference, Firestore, Query, Transaction, WriteBatch } from "firebase-admin/firestore";
 import { Firestore as MockedFirestore } from "firebase-admin/firestore";
+import { InMemoryLogger } from "@schorts/shared-kernel";
 
 import { FirestoreBatchUnitOfWork } from "../src/firestore-batch-unit-of-work";
 import { FirestoreTransactionUnitOfWork } from "../src/firestore-transaction-unit-of-work";
 import { FirestoreUnitOfWorkRunner } from "../src/firestore-unit-of-work-runner";
 import { TransactionNotActive } from "../src/exceptions";
-import { asFirestore, mockedWriteBatch, fakeTransaction, RecordingLogger } from "./helpers/fake-firestore";
+import { asFirestore, mockedWriteBatch, fakeTransaction } from "./helpers/fake-firestore";
 
 const docRef = asFirestore<DocumentReference>({ id: "doc-1" });
 
@@ -23,7 +24,7 @@ describe("FirestoreBatchUnitOfWork", () => {
         return batch;
       }),
     });
-    uow = new FirestoreBatchUnitOfWork(firestore, new RecordingLogger());
+    uow = new FirestoreBatchUnitOfWork(firestore, new InMemoryLogger("debug"));
   });
 
   it("is inactive until it begins", async () => {

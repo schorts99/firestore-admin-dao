@@ -1,9 +1,9 @@
 import type { DocumentSnapshot } from "firebase-admin/firestore";
 import { Timestamp } from "firebase-admin/firestore";
-import { EntityRegistry } from "@schorts/shared-kernel";
+import { EntityRegistry, InMemoryLogger } from "@schorts/shared-kernel";
 
 import { FirestoreEntityFactory } from "../src/firestore-entity-factory";
-import { asFirestore, FakeDocumentReference, FakeDocumentSnapshot, RecordingLogger } from "./helpers/fake-firestore";
+import { asFirestore, FakeDocumentReference, FakeDocumentSnapshot } from "./helpers/fake-firestore";
 import { registerUserEntity, storedUser, UserEntity, USERS } from "./helpers/user";
 
 function snapshot(id: string, data?: Record<string, unknown>): DocumentSnapshot {
@@ -14,7 +14,7 @@ describe("FirestoreEntityFactory", () => {
   beforeAll(registerUserEntity);
   afterAll(() => EntityRegistry.unregister(USERS));
 
-  const factory = new FirestoreEntityFactory<UserEntity>(USERS, new RecordingLogger());
+  const factory = new FirestoreEntityFactory<UserEntity>(USERS, new InMemoryLogger("debug"));
 
   describe("#fromSnapshot", () => {
     it("returns null for a missing document", () => {

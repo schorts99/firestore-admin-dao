@@ -1,12 +1,12 @@
 import type { CollectionReference, Transaction } from "firebase-admin/firestore";
 import { Timestamp } from "firebase-admin/firestore";
 import { geohashQueryBounds } from "geofire-common";
-import { Criteria, type GeoRadiusFilterValue } from "@schorts/shared-kernel";
+import { Criteria, type GeoRadiusFilterValue, InMemoryLogger } from "@schorts/shared-kernel";
 
 import { FirestoreCriteriaQueryExecutor } from "../src/firestore-criteria-query-executor";
 import { FirestoreTransactionUnitOfWork } from "../src/firestore-transaction-unit-of-work";
 import { OperatorNotValid } from "../src/exceptions";
-import { asFirestore, FakeCollection, fakeTransaction, RecordingLogger } from "./helpers/fake-firestore";
+import { asFirestore, FakeCollection, fakeTransaction } from "./helpers/fake-firestore";
 
 function execute(
   collection: FakeCollection,
@@ -17,7 +17,7 @@ function execute(
     asFirestore<CollectionReference>(collection),
     criteria,
     uow,
-    new RecordingLogger(),
+    new InMemoryLogger("debug"),
   );
 }
 
@@ -225,7 +225,7 @@ describe("FirestoreCriteriaQueryExecutor", () => {
         asFirestore<CollectionReference>(collection),
         criteria,
         uow,
-        new RecordingLogger(),
+        new InMemoryLogger("debug"),
       );
     }
 

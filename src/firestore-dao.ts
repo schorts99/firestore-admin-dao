@@ -15,6 +15,7 @@ import { FirestoreBatchUnitOfWork } from "./firestore-batch-unit-of-work";
 import { FirestoreTransactionUnitOfWork } from "./firestore-transaction-unit-of-work";
 import { EntityFirestoreFactory } from "./entity-firestore-factory";
 import { EntityNotRecoverable } from "./exceptions";
+import { entityId, entityIds, unitOfWorkKind } from "./log-context";
 
 export abstract class FirestoreDAO<
   M extends Model,
@@ -45,8 +46,8 @@ export abstract class FirestoreDAO<
 
     this.logger?.debug("[FirestoreDAO findByID] started", {
       collectionName: this.collection.path,
-      docRef,
-      uow,
+      path: docRef.path,
+      uow: unitOfWorkKind(uow),
       includeDeleted,
     });
 
@@ -57,7 +58,7 @@ export abstract class FirestoreDAO<
     }
 
     this.logger?.debug("[FirestoreDAO findByID] retrieved document snapshot", {
-      docSnap,
+      exists: docSnap.exists,
     });
 
     if (this.deleteMode === "SOFT" && docSnap.exists) {
@@ -73,7 +74,7 @@ export abstract class FirestoreDAO<
     const entity = this.firestoreEntityFactory.fromSnapshot(docSnap);
 
     this.logger?.debug("[FirestoreDAO findByID] completed", {
-      entity
+      entityId: entityId(entity)
     });
 
     return entity;
@@ -92,7 +93,7 @@ export abstract class FirestoreDAO<
 
     this.logger?.debug("[FirestoreDAO findOneBy] started", {
       criteria,
-      uow,
+      uow: unitOfWorkKind(uow),
       includeDeleted,
     });
 
@@ -107,7 +108,7 @@ export abstract class FirestoreDAO<
     );
 
     this.logger?.debug("[FirestoreDAO findOneBy] retrieved query snapshot", {
-      querySnap,
+      size: querySnap.size,
     });
 
     if (querySnap.empty) return null;
@@ -116,7 +117,7 @@ export abstract class FirestoreDAO<
     const entity = this.firestoreEntityFactory.fromSnapshot(docSnap);
 
     this.logger?.debug("[FirestoreDAO findOneBy] completed", {
-      entity
+      entityId: entityId(entity)
     });
 
     return entity;
@@ -135,7 +136,7 @@ export abstract class FirestoreDAO<
     let querySnap;
 
     this.logger?.debug("[FirestoreDAO getAll] started", {
-      uow,
+      uow: unitOfWorkKind(uow),
       includeDeleted,
     });
 
@@ -146,7 +147,7 @@ export abstract class FirestoreDAO<
     }
 
     this.logger?.debug("[FirestoreDAO getAll] retrieved query snapshot", {
-      querySnap,
+      size: querySnap.size,
     });
 
     if (querySnap.empty) return [];
@@ -154,7 +155,7 @@ export abstract class FirestoreDAO<
     const entities = this.firestoreEntityFactory.fromSnapshots(querySnap.docs);
 
     this.logger?.debug("[FirestoreDAO getAll] completed", {
-      entities,
+      entityIds: entityIds(entities),
     });
 
     return entities;
@@ -171,7 +172,7 @@ export abstract class FirestoreDAO<
     
     this.logger?.debug("[FirestoreDAO search] started", {
       criteria,
-      uow,
+      uow: unitOfWorkKind(uow),
       includeDeleted,
     });
     
@@ -186,7 +187,7 @@ export abstract class FirestoreDAO<
     );
 
     this.logger?.debug("[FirestoreDAO search] retrieved query snapshot", {
-      querySnap,
+      size: querySnap.size,
     });
 
     if (querySnap.empty) return [];
@@ -194,7 +195,7 @@ export abstract class FirestoreDAO<
     const entities = this.firestoreEntityFactory.fromSnapshots(querySnap.docs);
 
     this.logger?.debug("[FirestoreDAO search] completed", {
-      entities,
+      entityIds: entityIds(entities),
     });
 
     return entities;
@@ -205,7 +206,7 @@ export abstract class FirestoreDAO<
     includeDeleted = false,
   ): Promise<number> {
     this.logger?.debug("[FirestoreDAO count] started", {
-      uow,
+      uow: unitOfWorkKind(uow),
       includeDeleted,
     });
 
@@ -229,7 +230,7 @@ export abstract class FirestoreDAO<
 
     this.logger?.debug("[FirestoreDAO countBy] started", {
       criteria,
-      uow,
+      uow: unitOfWorkKind(uow),
       includeDeleted,
     });
 
@@ -256,9 +257,9 @@ export abstract class FirestoreDAO<
     );
 
     this.logger?.debug("[FirestoreDAO create] started", {
-      entity,
-      uow,
-      docRef,
+      entityId: entityId(entity),
+      uow: unitOfWorkKind(uow),
+      path: docRef.path,
     });
 
     const data = EntityFirestoreFactory.fromEntity(entity);
@@ -289,9 +290,9 @@ export abstract class FirestoreDAO<
     );
 
     this.logger?.debug("[FirestoreDAO update] started", {
-      entity,
-      uow,
-      docRef,
+      entityId: entityId(entity),
+      uow: unitOfWorkKind(uow),
+      path: docRef.path,
     });
 
     const data = EntityFirestoreFactory.fromEntity(entity);
@@ -322,9 +323,9 @@ export abstract class FirestoreDAO<
     );
 
     this.logger?.debug("[FirestoreDAO delete] started", {
-      entity,
-      uow,
-      docRef,
+      entityId: entityId(entity),
+      uow: unitOfWorkKind(uow),
+      path: docRef.path,
     });
 
     if (uow) {
@@ -361,14 +362,14 @@ export abstract class FirestoreDAO<
   ): Promise<boolean> {
     this.logger?.debug("[FirestoreDAO exists] started", {
       criteria,
-      uow,
+      uow: unitOfWorkKind(uow),
       includeDeleted,
     });
 
     const entity = await this.findOneBy(criteria, uow, includeDeleted);
 
     this.logger?.debug("[FirestoreDAO exists] completed", {
-      entity,
+      entityId: entityId(entity),
     });
 
     return entity !== null;
@@ -380,13 +381,13 @@ export abstract class FirestoreDAO<
   ): Promise<void> {
     this.logger?.debug("[FirestoreDAO deleteByID] started", {
       id,
-      uow,
+      uow: unitOfWorkKind(uow),
     });
 
     const entity = await this.findByID(id, uow);
 
     this.logger?.debug("[FirestoreDAO deleteByID] completed", {
-      entity,
+      entityId: entityId(entity),
     });
 
     if (entity) {
@@ -399,14 +400,14 @@ export abstract class FirestoreDAO<
     uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork,
   ): Promise<Entity> {
     this.logger?.debug("[FirestoreDAO save] started", {
-      entity,
-      uow,
+      entityId: entityId(entity),
+      uow: unitOfWorkKind(uow),
     });
 
     const existing = await this.findByID(entity.id.value, uow, true);
 
     this.logger?.debug("[FirestoreDAO save] completed", {
-      existing,
+      exists: existing !== null,
     });
 
     if (existing) {
@@ -421,8 +422,8 @@ export abstract class FirestoreDAO<
     uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork,
   ): Promise<Entity[]> {
     this.logger?.debug("[FirestoreDAO saveMany] started", {
-      entities,
-      uow,
+      entityIds: entityIds(entities),
+      uow: unitOfWorkKind(uow),
     });
 
     const promises = entities.map((entity) => this.save(entity, uow));
@@ -434,8 +435,8 @@ export abstract class FirestoreDAO<
 
   async restore(entity: Entity, uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork): Promise<Entity> {
     this.logger?.debug("[FirestoreDAO restore] started", {
-      entity,
-      uow,
+      entityId: entityId(entity),
+      uow: unitOfWorkKind(uow),
       deleteMode: this.deleteMode,
     });
 
@@ -448,7 +449,7 @@ export abstract class FirestoreDAO<
     );
 
     this.logger?.debug("[FirestoreDAO restore] found document", {
-      docRef,
+      path: docRef.path,
     });
 
     const data = EntityFirestoreFactory.fromEntity(entity);

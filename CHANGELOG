@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Unit tests.
+- AI agent docs in `ai/`, shipped with the package: an `AGENTS.md` overview, rules for entity mapping, querying, units of work, soft delete, and testing, and skills for creating a DAO, geo search, transactions and batches, enabling soft delete, testing, and migrating to 6.x. `npm run check:ai-docs` type-checks their examples.
 
 ### Fixed
 
@@ -24,7 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `getAll` returns every document instead of the first 1000.
 - `FirestoreBatchUnitOfWork.create` uses `batch.create`, so creating an existing document fails the commit instead of overwriting it, as it already did without a unit of work.
 - `GEO_RADIUS` searches apply orders, offset and limit to the merged, distance-filtered results. Before, limit and orders were applied to each geohash bound and offset was ignored. The bound queries no longer order by the criteria fields, so they need no composite indexes for them.
-- `DataMigrator.migrateFromHardToSoftDelete` reads and commits in pages of up to 500 documents, Firestore's batch limit, instead of one batch for the whole collection.
+- Debug logs no longer pass Firestore references, snapshots, queries, batches, units of work, or entities as context; they log paths, IDs, sizes, and the unit of work's class name. Loggers that clone context, such as the shared kernel's `InMemoryLogger`, threw `DataCloneError` on every DAO call at `debug` level.
+- `DataMigrator.migrateFromHardToSoftDelete` reads and commits one page of documents at a time (500 by default, set with a new optional third constructor argument) instead of loading the whole collection into one batch.
 
 ## [4.5.0] - 2026-07-02
 

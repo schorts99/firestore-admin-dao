@@ -36,9 +36,7 @@ export class FirestoreBatchUnitOfWork implements UnitOfWork {
       throw new TransactionNotActive();
     }
 
-    this.logger?.debug("[FirestoreBatchUnitOfWork commit] committing batch", {
-      batch: this.batch,
-    });
+    this.logger?.debug("[FirestoreBatchUnitOfWork commit] committing batch");
 
     await this.batch.commit();
     
@@ -46,27 +44,23 @@ export class FirestoreBatchUnitOfWork implements UnitOfWork {
 
     this.logger?.debug("[FirestoreBatchUnitOfWork commit] completed", {
       active: this.active,
-      batch: this.batch,
     });
   }
 
   async rollback(): Promise<void> {
-    this.logger?.debug("[FirestoreBatchUnitOfWork rollback] started", {
-      batch: this.batch,
-    });
+    this.logger?.debug("[FirestoreBatchUnitOfWork rollback] started");
 
     this.batch = this.firestore.batch();
     this.active = false;
 
     this.logger?.debug("[FirestoreBatchUnitOfWork rollback] completed", {
       active: this.active,
-      batch: this.batch,
     });
   }
 
   create(docRef: DocumentReference, data: DocumentData): void {
     this.logger?.debug("[FirestoreBatchUnitOfWork create] started", {
-      docRef,
+      path: docRef.path,
       data,
     });
 
@@ -77,7 +71,7 @@ export class FirestoreBatchUnitOfWork implements UnitOfWork {
 
   update(docRef: DocumentReference, data: DocumentData): void {
     this.logger?.debug("[FirestoreBatchUnitOfWork update] started", {
-      docRef,
+      path: docRef.path,
       data,
     });
 
@@ -88,7 +82,7 @@ export class FirestoreBatchUnitOfWork implements UnitOfWork {
 
   delete(docRef: DocumentReference): void {
     this.logger?.debug("[FirestoreBatchUnitOfWork delete] started", {
-      docRef,
+      path: docRef.path,
     });
 
     this.batch.delete(docRef);

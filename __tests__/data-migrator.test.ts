@@ -1,7 +1,8 @@
 import type { CollectionReference, WriteBatch } from "firebase-admin/firestore";
+import { InMemoryLogger } from "@schorts/shared-kernel";
 
 import { DataMigrator } from "../src/data-migrator";
-import { asFirestore, mockedWriteBatch, FakeCollection, RecordingLogger } from "./helpers/fake-firestore";
+import { asFirestore, mockedWriteBatch, FakeCollection } from "./helpers/fake-firestore";
 
 describe("DataMigrator", () => {
   describe("#migrateFromHardToSoftDelete", () => {
@@ -9,7 +10,7 @@ describe("DataMigrator", () => {
       const collection = new FakeCollection("users", docs);
       const batch = mockedWriteBatch();
       collection.firestore.batch.mockReturnValue(batch);
-      const migrator = new DataMigrator(asFirestore<CollectionReference>(collection), new RecordingLogger());
+      const migrator = new DataMigrator(asFirestore<CollectionReference>(collection), new InMemoryLogger("debug"));
 
       return { batch, migrator };
     }
@@ -68,10 +69,10 @@ describe("DataMigrator", () => {
       expect(collection.issued).toHaveLength(2);
     });
 
-    it("never reads pages larger than a Firestore batch", async () => {
+    it("reads pages of 500 documents by default", async () => {
       const collection = new FakeCollection("users");
 
-      await new DataMigrator(asFirestore<CollectionReference>(collection), undefined, 10_000).migrateFromHardToSoftDelete();
+      await new DataMigrator(asFirestore<CollectionReference>(collection)).migrateFromHardToSoftDelete();
 
       expect(collection.issued[0]).toEqual([["orderBy", "__mocked_document_id__"], ["limit", 500]]);
     });

@@ -1,19 +1,19 @@
 import type { CollectionReference, Firestore, Transaction } from "firebase-admin/firestore";
 import { Firestore as MockedFirestore, Timestamp } from "firebase-admin/firestore";
-import { Criteria, EntityRegistry, type DeleteMode } from "@schorts/shared-kernel";
+import { Criteria, EntityRegistry, type DeleteMode, InMemoryLogger } from "@schorts/shared-kernel";
 
 import { FirestoreDAO } from "../src/firestore-dao";
 import { FirestoreBatchUnitOfWork } from "../src/firestore-batch-unit-of-work";
 import { FirestoreTransactionUnitOfWork } from "../src/firestore-transaction-unit-of-work";
 import { EntityNotRecoverable } from "../src/exceptions";
-import { asFirestore, FakeCollection, fakeTransaction, RecordingLogger, type StoredDocs } from "./helpers/fake-firestore";
+import { asFirestore, FakeCollection, fakeTransaction, type StoredDocs } from "./helpers/fake-firestore";
 import { buildUser, registerUserEntity, storedUser, UserEntity, USERS, type UserModel } from "./helpers/user";
 
 class UserDAO extends FirestoreDAO<UserModel, UserEntity> {}
 
 function setup(docs: StoredDocs = {}, deleteMode: DeleteMode = "HARD") {
   const collection = new FakeCollection(USERS, docs);
-  const logger = new RecordingLogger();
+  const logger = new InMemoryLogger("debug");
   const dao = new UserDAO(asFirestore<CollectionReference>(collection), deleteMode, logger);
 
   return { collection, dao, logger };
@@ -41,12 +41,22 @@ describe("FirestoreDAO", () => {
   beforeAll(registerUserEntity);
   afterAll(() => EntityRegistry.unregister(USERS));
 
-  it("logs through the given logger", async () => {
+  it("logs plain data through the given logger", async () => {
     const { dao, logger } = setup({ "user-1": storedUser() });
+    const { uow } = transactionUnitOfWork();
 
-    await dao.findByID("user-1");
+    await dao.findByID("user-1", uow);
 
-    expect(logger.messages).toContain("[FirestoreDAO findByID] completed");
+    expect(logger.getEntries().map((entry) => [entry.message, entry.context])).toEqual(
+      expect.arrayContaining([
+        [
+          "[FirestoreDAO findByID] started",
+          { collectionName: USERS, path: "users/user-1", uow: "FirestoreTransactionUnitOfWork", includeDeleted: false },
+        ],
+        ["[FirestoreDAO findByID] retrieved document snapshot", { exists: true }],
+        ["[FirestoreDAO findByID] completed", { entityId: "user-1" }],
+      ]),
+    );
   });
 
   it("works without a logger", async () => {

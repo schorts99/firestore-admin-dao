@@ -11,7 +11,7 @@ module.exports = {
   },
   moduleFileExtensions: ["ts", "js", "json", "node"],
   testMatch: ["**/__tests__/**/*.ts", "**/?(*.)+(spec|test).ts"],
-  testPathIgnorePatterns: ["/node_modules/", "/__tests__/helpers/"],
+  testPathIgnorePatterns: ["/node_modules/", "/__tests__/helpers/", "/.ai-docs-check/"],
   collectCoverageFrom: [
     "src/*.ts",
     "!src/*.d.ts",

@@ -2,6 +2,7 @@ import { DocumentSnapshot } from "firebase-admin/firestore";
 import { EntityRegistry, type Logger } from "@schorts/shared-kernel";
 
 import { FirestoreTypesToPrimitivesFormatter } from "./firestore-types-to-primitives-formatter";
+import { entityId, entityIds } from "./log-context";
 
 export class FirestoreEntityFactory<Entity> {
   constructor(
@@ -11,7 +12,8 @@ export class FirestoreEntityFactory<Entity> {
 
   fromSnapshot(docSnap: DocumentSnapshot): Entity | null {
     this.logger?.debug("[FirestoreEntityFactory fromSnapshot] started", {
-      docSnap,
+      id: docSnap.id,
+      exists: docSnap.exists,
     });
 
     if (!docSnap.exists) {
@@ -27,7 +29,7 @@ export class FirestoreEntityFactory<Entity> {
     const entity = EntityRegistry.fromPrimitives(this.collectionName, { id: docSnap.id, ...data });
 
     this.logger?.debug("[FirestoreEntityFactory fromSnapshot] completed", {
-      entity,
+      entityId: entityId(entity),
     });
 
     return entity as Entity;
@@ -35,7 +37,7 @@ export class FirestoreEntityFactory<Entity> {
 
   fromSnapshots(docs: DocumentSnapshot[]): Entity[] {
     this.logger?.debug("[FirestoreEntityFactory fromSnapshots] started", {
-      docs,
+      size: docs.length,
     });
 
     const entities = docs
@@ -44,7 +46,7 @@ export class FirestoreEntityFactory<Entity> {
       .filter(Boolean);
 
     this.logger?.debug("[FirestoreEntityFactory fromSnapshots] completed", {
-      entities,
+      entityIds: entityIds(entities),
     });
     
     return entities;

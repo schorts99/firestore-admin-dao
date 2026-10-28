@@ -12,6 +12,7 @@ import { CriteriaToFirestoreSymbolsTranslator } from "./criteria-to-firestore-sy
 import { FirestoreBatchUnitOfWork } from "./firestore-batch-unit-of-work";
 import { FirestoreTransactionUnitOfWork } from "./firestore-transaction-unit-of-work";
 import { OperatorNotValid } from "./exceptions";
+import { unitOfWorkKind } from "./log-context";
 
 export class FirestoreCriteriaQueryExecutor {
   static async execute(
@@ -24,7 +25,7 @@ export class FirestoreCriteriaQueryExecutor {
 
     logger?.debug(
       '[FirestoreCriteriaQueryExecutor execute] started',
-      { geoFilter, uow, criteria, collection },
+      { geoFilter, uow: unitOfWorkKind(uow), criteria, collectionName: collection.path },
     );
 
     if (geoFilter) {
@@ -66,7 +67,6 @@ export class FirestoreCriteriaQueryExecutor {
 
         logger?.debug(
           "[FirestoreCriteriaQueryExecutor execute] constructed query for geospatial bound",
-          { queryRef },
         );
 
         if (uow && uow instanceof FirestoreTransactionUnitOfWork) {
@@ -82,7 +82,7 @@ export class FirestoreCriteriaQueryExecutor {
 
       logger?.debug(
         "[FirestoreCriteriaQueryExecutor execute] retrieved all snapshots",
-        { snapshots }
+        { sizes: snapshots.map((snap) => snap.size) }
       );
 
       allDocs.forEach((doc) => uniqueDocsMap.set(doc.id, doc));
@@ -105,7 +105,7 @@ export class FirestoreCriteriaQueryExecutor {
 
       logger?.debug(
         "[FirestoreCriteriaQueryExecutor execute] completed",
-        { pagedDocs });
+        { size: pagedDocs.length });
 
       return {
         docs: pagedDocs,
@@ -123,7 +123,6 @@ export class FirestoreCriteriaQueryExecutor {
       if (uow && uow instanceof FirestoreTransactionUnitOfWork) {
         logger?.debug(
           "[FirestoreCriteriaQueryExecutor execute] completed",
-          { queryRef }
         );
 
         return uow.getQuery(queryRef);
@@ -131,7 +130,6 @@ export class FirestoreCriteriaQueryExecutor {
 
       logger?.debug(
         "[FirestoreCriteriaQueryExecutor execute] completed",
-        { queryRef }
       );
 
       return queryRef.get();
@@ -146,7 +144,7 @@ export class FirestoreCriteriaQueryExecutor {
   ): Promise<number> {
     logger?.debug(
       "[FirestoreCriteriaQueryExecutor count] started",
-      { uow, criteria, collection },
+      { uow: unitOfWorkKind(uow), criteria, collectionName: collection.path },
     );
 
     // Distance can only be checked on the documents themselves.

@@ -3,14 +3,17 @@ import { Logger } from "@schorts/shared-kernel";
 
 import { FirestoreBatchUnitOfWork } from './firestore-batch-unit-of-work';
 
-/** Firestore rejects batches with more than 500 writes. */
-const MAX_BATCH_SIZE = 500;
+/**
+ * Documents read, and updates committed, per page. Paging keeps memory flat on large
+ * collections and keeps each commit far below Firestore's 10 MiB request size limit.
+ */
+const DEFAULT_PAGE_SIZE = 500;
 
 export class DataMigrator {
   constructor(
     private readonly collection: CollectionReference,
     private readonly logger?: Logger,
-    private readonly pageSize = MAX_BATCH_SIZE,
+    private readonly pageSize = DEFAULT_PAGE_SIZE,
   ) {}
 
   async migrateFromHardToSoftDelete() {
@@ -18,7 +21,7 @@ export class DataMigrator {
       collectionName: this.collection.path,
     });
 
-    const pageSize = Math.min(Math.max(1, Math.floor(this.pageSize)), MAX_BATCH_SIZE);
+    const pageSize = Math.max(1, Math.floor(this.pageSize));
     let lastDoc: DocumentSnapshot | undefined;
     let migrated = 0;
 

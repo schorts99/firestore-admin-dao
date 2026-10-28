@@ -5,6 +5,18 @@
 
 This module provides a type-safe, domain-driven abstraction over Firestore persistence. It integrates tightly with the `Model`, `Entity`, `Criteria` and `UnitOfWork` constructs from `@schorts/shared-kernel`, enabling expressive, consistent, and testable data access.
 
+## 🤖 Using it with AI coding agents
+
+The package ships agent docs in `node_modules/@schorts/firestore-admin-dao/ai/`: an `AGENTS.md` overview, rules (entity mapping, querying, transactions, soft delete, testing), and step-by-step skills (create a DAO, geo search, transactions and batches, soft delete, testing, upgrading to 6.x) with type-checked examples. They build on the shared kernel's docs. Point your agent at both, for example in `CLAUDE.md`:
+
+```md
+Before writing code that uses @schorts/firestore-admin-dao, read
+node_modules/@schorts/shared-kernel/ai/AGENTS.md, then
+node_modules/@schorts/firestore-admin-dao/ai/AGENTS.md, and follow their rules and skills.
+```
+
+[`ai/README.md`](ai/README.md) has setup for Claude Code (including linking the skills), Cursor, Copilot, and other tools.
+
 ## Installation
 
 This package has a peer dependency on `@schorts/shared-kernel`.

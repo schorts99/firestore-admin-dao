@@ -1,6 +1,5 @@
 import type { WriteBatch } from "firebase-admin/firestore";
 import { WriteBatch as MockedWriteBatch } from "firebase-admin/firestore";
-import { Logger } from "@schorts/shared-kernel";
 
 export type QueryCall = [method: string, ...args: unknown[]];
 
@@ -34,7 +33,7 @@ export class FakeDocumentReference {
   readonly update = jest.fn(async (_data: Record<string, unknown>) => undefined);
   readonly delete = jest.fn(async () => undefined);
 
-  constructor(readonly id: string, private readonly docs: StoredDocs) {}
+  constructor(readonly id: string, private readonly docs: StoredDocs, readonly path = id) {}
 }
 
 export function querySnapshotOf(docs: FakeDocumentSnapshot[]) {
@@ -139,7 +138,7 @@ export class FakeCollection extends FakeQuery {
 
   doc(id: string): FakeDocumentReference {
     if (!this.refs.has(id)) {
-      this.refs.set(id, new FakeDocumentReference(id, this.docs));
+      this.refs.set(id, new FakeDocumentReference(id, this.docs, `${this.path}/${id}`));
     }
 
     return this.refs.get(id)!;
@@ -163,29 +162,4 @@ export function mockedWriteBatch(): WriteBatch {
 /** Casts a fake to the Firestore type a constructor or method expects. */
 export function asFirestore<T>(fake: unknown): T {
   return fake as T;
-}
-
-/** Records messages without cloning their context, which holds Firestore objects. */
-export class RecordingLogger extends Logger {
-  readonly messages: string[] = [];
-
-  log(message: string): void {
-    this.messages.push(message);
-  }
-
-  info(message: string): void {
-    this.messages.push(message);
-  }
-
-  debug(message: string): void {
-    this.messages.push(message);
-  }
-
-  warn(message: string): void {
-    this.messages.push(message);
-  }
-
-  error(message: string): void {
-    this.messages.push(message);
-  }
 }
