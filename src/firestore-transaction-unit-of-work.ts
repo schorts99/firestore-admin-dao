@@ -32,6 +32,12 @@ export class FirestoreTransactionUnitOfWork implements UnitOfWork {
     return this.transaction.get(query);
   }
 
+  async count(query: Query): Promise<number> {
+    const snapshot = await this.transaction.get(query.count());
+
+    return snapshot.data().count;
+  }
+
   create(docRef: DocumentReference, data: DocumentData): void {
     this.transaction.create(docRef, data);
   }

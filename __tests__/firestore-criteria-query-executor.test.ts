@@ -33,9 +33,8 @@ describe("FirestoreCriteriaQueryExecutor", () => {
         .limitResults(10)
         .offsetResults(20);
 
-      const snapshot = await execute(collection, criteria);
+      await execute(collection, criteria);
 
-      expect(snapshot.size).toBe(1);
       expect(collection.issued).toHaveLength(1);
       expect(collection.issued[0]).toEqual([
         ["where", "__mocked_document_id__", "in", ["a", "b"]],
@@ -94,9 +93,7 @@ describe("FirestoreCriteriaQueryExecutor", () => {
       const collection = new FakeCollection("places", docs);
       const criteria = new Criteria()
         .where("location", "GEO_RADIUS", { center, radiusInM: 1000 })
-        .where("status", "EQUAL", "active")
-        .orderBy("name", "ASC")
-        .limitResults(5);
+        .where("status", "EQUAL", "active");
 
       const snapshot = await execute(collection, criteria);
       const bounds = geohashQueryBounds(center, 1000);
@@ -110,8 +107,6 @@ describe("FirestoreCriteriaQueryExecutor", () => {
           ["orderBy", "location_geohash"],
           ["startAt", start],
           ["endAt", end],
-          ["orderBy", "name", "asc"],
-          ["limit", 5],
         ]),
       );
     });
@@ -142,6 +137,69 @@ describe("FirestoreCriteriaQueryExecutor", () => {
       expect(snapshot.docs.map((doc) => doc.id).sort()).toEqual(["far", "near"]);
     });
 
+    describe("ordering and paging", () => {
+      const places = {
+        a: { location: { latitude: 0.001, longitude: 0 }, rank: 3, name: "Alpha" },
+        b: { location: { latitude: 0.002, longitude: 0 }, rank: 1, name: "Bravo" },
+        c: { location: { latitude: 0.003, longitude: 0 }, name: "Charlie" },
+        d: { location: { latitude: 0.004, longitude: 0 }, rank: 2, name: "Delta" },
+        far: { location: { latitude: 1, longitude: 0 }, rank: 0, name: "Far" },
+      };
+      const nearby = () => new Criteria().where("location", "GEO_RADIUS", { center, radiusInM: 1000 });
+
+      async function ids(criteria: Criteria) {
+        const snapshot = await execute(new FakeCollection("places", places), criteria);
+
+        return snapshot.docs.map((doc) => doc.id);
+      }
+
+      it("does not push orders, offset or limit into the bound queries", async () => {
+        const collection = new FakeCollection("places", places);
+
+        await execute(collection, nearby().orderBy("rank").limitResults(1).offsetResults(1));
+
+        for (const calls of collection.issued) {
+          expect(calls.map(([method]) => method)).toEqual(["orderBy", "startAt", "endAt"]);
+        }
+      });
+
+      it("sorts the merged results, with missing values last", async () => {
+        await expect(ids(nearby().orderBy("rank", "ASC"))).resolves.toEqual(["b", "d", "a", "c"]);
+        await expect(ids(nearby().orderBy("rank", "DESC"))).resolves.toEqual(["a", "d", "b", "c"]);
+      });
+
+      it("sorts by several fields and by id", async () => {
+        const tied = { ...places, b: { ...places.b, rank: 3 } };
+        const snapshot = await execute(
+          new FakeCollection("places", tied),
+          nearby().orderBy("rank", "DESC").orderBy("id", "DESC"),
+        );
+
+        expect(snapshot.docs.map((doc) => doc.id)).toEqual(["b", "a", "d", "c"]);
+      });
+
+      it("sorts timestamps and dates chronologically", async () => {
+        const dated = {
+          a: { location: places.a.location, at: Timestamp.fromDate(new Date("2026-03-01")) },
+          b: { location: places.b.location, at: new Date("2026-01-01") },
+          c: { location: places.c.location, at: Timestamp.fromDate(new Date("2026-02-01")) },
+        };
+        const snapshot = await execute(new FakeCollection("places", dated), nearby().orderBy("at"));
+
+        expect(snapshot.docs.map((doc) => doc.id)).toEqual(["b", "c", "a"]);
+      });
+
+      it("applies offset and limit to the merged results", async () => {
+        await expect(ids(nearby().orderBy("name").offsetResults(1).limitResults(2))).resolves.toEqual(["b", "c"]);
+        await expect(ids(nearby().orderBy("name").limitResults(3))).resolves.toEqual(["a", "b", "c"]);
+        await expect(ids(nearby().orderBy("name").offsetResults(3))).resolves.toEqual(["d"]);
+      });
+
+      it("keeps the merged order when there are no orders", async () => {
+        await expect(ids(nearby())).resolves.toEqual(["a", "b", "c", "d"]);
+      });
+    });
+
     it("throws OperatorNotValid when the value has no radius", async () => {
       const collection = new FakeCollection("places", docs);
       const criteria = new Criteria().where("location", "GEO_RADIUS", { center } as unknown as GeoRadiusFilterValue);
@@ -158,6 +216,45 @@ describe("FirestoreCriteriaQueryExecutor", () => {
       await execute(collection, new Criteria().where("location", "GEO_RADIUS", { center, radiusInM: 1000 }), uow);
 
       expect(transaction.get).toHaveBeenCalledTimes(geohashQueryBounds(center, 1000).length);
+    });
+  });
+
+  describe("#count", () => {
+    function count(collection: FakeCollection, criteria: Criteria, uow?: FirestoreTransactionUnitOfWork) {
+      return FirestoreCriteriaQueryExecutor.count(
+        asFirestore<CollectionReference>(collection),
+        criteria,
+        uow,
+        new RecordingLogger(),
+      );
+    }
+
+    it("counts with an aggregate query", async () => {
+      const collection = new FakeCollection("users", { a: {}, b: {} });
+
+      await expect(count(collection, new Criteria().where("name", "EQUAL", "Ada"))).resolves.toBe(2);
+      expect(collection.issued).toEqual([[["where", "name", "==", "Ada"], ["count"]]]);
+    });
+
+    it("counts through the transaction when one is given", async () => {
+      const collection = new FakeCollection("users", { a: {} });
+      const transaction = fakeTransaction();
+      const uow = new FirestoreTransactionUnitOfWork(asFirestore<Transaction>(transaction));
+
+      await expect(count(collection, new Criteria(), uow)).resolves.toBe(1);
+      expect(transaction.get).toHaveBeenCalledTimes(1);
+    });
+
+    it("counts geo radius matches from the documents", async () => {
+      const collection = new FakeCollection("places", {
+        near: { location: { latitude: 0.001, longitude: 0 } },
+        far: { location: { latitude: 1, longitude: 0 } },
+      });
+
+      await expect(
+        count(collection, new Criteria().where("location", "GEO_RADIUS", { center: [0, 0], radiusInM: 1000 })),
+      ).resolves.toBe(1);
+      expect(collection.issued.flat().some(([method]) => method === "count")).toBe(false);
     });
   });
 });

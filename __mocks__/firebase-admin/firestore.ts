@@ -1,4 +1,5 @@
 export class WriteBatch {
+  create = jest.fn(() => this);
   set = jest.fn(() => this);
   update = jest.fn(() => this);
   delete = jest.fn(() => this);

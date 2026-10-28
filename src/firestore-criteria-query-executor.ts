@@ -3,9 +3,10 @@ import {
   Query,
   DocumentSnapshot,
   QuerySnapshot,
+  Timestamp,
 } from "firebase-admin/firestore";
 import { geohashQueryBounds, distanceBetween } from "geofire-common";
-import { Criteria, Logger, readGeoRadius } from "@schorts/shared-kernel";
+import { Criteria, Logger, Order, readGeoRadius } from "@schorts/shared-kernel";
 
 import { CriteriaToFirestoreSymbolsTranslator } from "./criteria-to-firestore-symbols-translator";
 import { FirestoreBatchUnitOfWork } from "./firestore-batch-unit-of-work";
@@ -44,6 +45,8 @@ export class FirestoreCriteriaQueryExecutor {
         { bounds, center, radiusInM, geoField },
       );
 
+      // Each bound is ordered by geohash, so orders, offset and limit can only be applied
+      // once the bounds are merged and filtered by distance.
       for (const b of bounds) {
         let queryRef: Query = collection;
 
@@ -60,17 +63,6 @@ export class FirestoreCriteriaQueryExecutor {
           .orderBy(`${geoField}_geohash`)
           .startAt(b[0])
           .endAt(b[1]);
-
-        for (const order of criteria.orders) {
-          const firestoreDirection = CriteriaToFirestoreSymbolsTranslator.translateOrderDirection(order.direction);
-          queryRef = firestoreDirection
-            ? queryRef.orderBy(order.field, firestoreDirection)
-            : queryRef.orderBy(order.field);
-        }
-
-        if (criteria.limit) {
-          queryRef = queryRef.limit(criteria.limit);
-        }
 
         logger?.debug(
           "[FirestoreCriteriaQueryExecutor execute] constructed query for geospatial bound",
@@ -106,45 +98,27 @@ export class FirestoreCriteriaQueryExecutor {
         return distanceInM <= radiusInM;
       });
 
+      const offset = criteria.offset ?? 0;
+      const pagedDocs = filteredDocs
+        .sort((a, b) => compareDocs(a, b, criteria.orders))
+        .slice(offset, criteria.limit ? offset + criteria.limit : undefined);
+
       logger?.debug(
         "[FirestoreCriteriaQueryExecutor execute] completed",
-        { filteredDocs });
+        { pagedDocs });
 
       return {
-        docs: filteredDocs,
-        empty: filteredDocs.length === 0,
-        size: filteredDocs.length,
-        forEach: (callback: (doc: DocumentSnapshot) => void) => filteredDocs.forEach(callback),
+        docs: pagedDocs,
+        empty: pagedDocs.length === 0,
+        size: pagedDocs.length,
+        forEach: (callback: (doc: DocumentSnapshot) => void) => pagedDocs.forEach(callback),
       } as QuerySnapshot;
     } else {
       logger?.debug(
         "[FirestoreCriteriaQueryExecutor execute] executing query with no geospatial filters",
       );
 
-      let queryRef: Query = collection;
-
-      for (const filter of criteria.filters) {
-        const firestoreField = CriteriaToFirestoreSymbolsTranslator.translateField(filter.field);
-        const firestoreOperator = CriteriaToFirestoreSymbolsTranslator.translateOperator(filter.operator);
-        const firestoreValue = CriteriaToFirestoreSymbolsTranslator.translateValue(filter.value);
-
-        queryRef = queryRef.where(firestoreField, firestoreOperator, firestoreValue);
-      }
-
-      for (const order of criteria.orders) {
-        const firestoreDirection = CriteriaToFirestoreSymbolsTranslator.translateOrderDirection(order.direction);
-        queryRef = firestoreDirection
-          ? queryRef.orderBy(order.field, firestoreDirection)
-          : queryRef.orderBy(order.field);
-      }
-
-      if (criteria.limit) {
-        queryRef = queryRef.limit(criteria.limit);
-      }
-
-      if (criteria.offset) {
-        queryRef = queryRef.offset(criteria.offset);
-      }
+      const queryRef = this.buildQuery(collection, criteria);
 
       if (uow && uow instanceof FirestoreTransactionUnitOfWork) {
         logger?.debug(
@@ -163,4 +137,99 @@ export class FirestoreCriteriaQueryExecutor {
       return queryRef.get();
     }
   }
+
+  static async count(
+    collection: CollectionReference,
+    criteria: Criteria,
+    uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork,
+    logger?: Logger,
+  ): Promise<number> {
+    logger?.debug(
+      "[FirestoreCriteriaQueryExecutor count] started",
+      { uow, criteria, collection },
+    );
+
+    // Distance can only be checked on the documents themselves.
+    if (criteria.filters.some(f => f.operator === "GEO_RADIUS")) {
+      const snapshot = await this.execute(collection, criteria, uow, logger);
+
+      return snapshot.size;
+    }
+
+    const queryRef = this.buildQuery(collection, criteria);
+    let count: number;
+
+    if (uow && uow instanceof FirestoreTransactionUnitOfWork) {
+      count = await uow.count(queryRef);
+    } else {
+      const snapshot = await queryRef.count().get();
+      count = snapshot.data().count;
+    }
+
+    logger?.debug(
+      "[FirestoreCriteriaQueryExecutor count] completed",
+      { count },
+    );
+
+    return count;
+  }
+
+  private static buildQuery(collection: CollectionReference, criteria: Criteria): Query {
+    let queryRef: Query = collection;
+
+    for (const filter of criteria.filters) {
+      const firestoreField = CriteriaToFirestoreSymbolsTranslator.translateField(filter.field);
+      const firestoreOperator = CriteriaToFirestoreSymbolsTranslator.translateOperator(filter.operator);
+      const firestoreValue = CriteriaToFirestoreSymbolsTranslator.translateValue(filter.value);
+
+      queryRef = queryRef.where(firestoreField, firestoreOperator, firestoreValue);
+    }
+
+    for (const order of criteria.orders) {
+      const firestoreDirection = CriteriaToFirestoreSymbolsTranslator.translateOrderDirection(order.direction);
+      queryRef = firestoreDirection
+        ? queryRef.orderBy(order.field, firestoreDirection)
+        : queryRef.orderBy(order.field);
+    }
+
+    if (criteria.limit) {
+      queryRef = queryRef.limit(criteria.limit);
+    }
+
+    if (criteria.offset) {
+      queryRef = queryRef.offset(criteria.offset);
+    }
+
+    return queryRef;
+  }
+}
+
+function compareDocs(a: DocumentSnapshot, b: DocumentSnapshot, orders: Order[]): number {
+  for (const order of orders) {
+    const left = sortableValue(a, order.field);
+    const right = sortableValue(b, order.field);
+
+    if (left === right) continue;
+
+    // Missing values sort last in either direction.
+    if (left === null) return 1;
+    if (right === null) return -1;
+
+    const comparison = left < right ? -1 : 1;
+
+    return order.direction === "DESC" ? -comparison : comparison;
+  }
+
+  return 0;
+}
+
+function sortableValue(doc: DocumentSnapshot, field: string): string | number | boolean | null {
+  const value: unknown = field === "id" ? doc.id : doc.get(field);
+
+  if (value === undefined || value === null) return null;
+  if (value instanceof Timestamp) return value.toDate().getTime();
+  if (value instanceof Date) return value.getTime();
+  if (typeof value === "number" || typeof value === "string" || typeof value === "boolean") return value;
+
+  return String(value);
 }

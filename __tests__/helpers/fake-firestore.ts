@@ -20,6 +20,12 @@ export class FakeDocumentSnapshot {
   data(): Record<string, unknown> | undefined {
     return this.stored ? { ...this.stored } : undefined;
   }
+
+  get(field: string): unknown {
+    return field
+      .split(".")
+      .reduce<unknown>((value, key) => (value as Record<string, unknown> | undefined)?.[key], this.stored);
+  }
 }
 
 export class FakeDocumentReference {
@@ -41,9 +47,10 @@ export function querySnapshotOf(docs: FakeDocumentSnapshot[]) {
 }
 
 /**
- * Immutable, chainable stand-in for a Firestore query. Every `get()` records the chain of
- * calls that built it in `issued`, and answers with every stored document: the tests assert
- * on the calls, not on Firestore's filtering.
+ * Immutable, chainable stand-in for a Firestore query. Every `get()` and `count().get()` records
+ * the chain of calls that built it in `issued`. It pages through the stored documents in insertion
+ * order (`startAfter`, `offset`, `limit`) but ignores filters and orders: the tests assert on the
+ * calls, not on Firestore's filtering.
  */
 export class FakeQuery {
   constructor(
@@ -76,12 +83,45 @@ export class FakeQuery {
     return this.chain("offset", args);
   }
 
+  startAfter(...args: unknown[]) {
+    return this.chain("startAfter", args);
+  }
+
+  count() {
+    return {
+      get: async () => {
+        this.issued.push([...this.calls, ["count"]]);
+        const count = this.results().length;
+
+        return { data: () => ({ count }) };
+      },
+    };
+  }
+
   async get() {
     this.issued.push(this.calls);
 
-    return querySnapshotOf(
-      Object.keys(this.docs).map((id) => new FakeDocumentSnapshot(id, this.docs[id], new FakeDocumentReference(id, this.docs))),
-    );
+    return querySnapshotOf(this.results());
+  }
+
+  private results(): FakeDocumentSnapshot[] {
+    let ids = Object.keys(this.docs);
+
+    for (const [method, arg] of this.calls) {
+      if (method === "startAfter") {
+        ids = ids.slice(ids.indexOf((arg as FakeDocumentSnapshot).id) + 1);
+      }
+    }
+
+    for (const [method, arg] of this.calls) {
+      if (method === "offset") ids = ids.slice(arg as number);
+    }
+
+    for (const [method, arg] of this.calls) {
+      if (method === "limit") ids = ids.slice(0, arg as number);
+    }
+
+    return ids.map((id) => new FakeDocumentSnapshot(id, this.docs[id], new FakeDocumentReference(id, this.docs)));
   }
 
   private chain(method: string, args: unknown[]): FakeQuery {

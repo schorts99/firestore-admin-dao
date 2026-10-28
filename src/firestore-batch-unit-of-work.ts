@@ -70,7 +70,7 @@ export class FirestoreBatchUnitOfWork implements UnitOfWork {
       data,
     });
 
-    this.batch.set(docRef, data);
+    this.batch.create(docRef, data);
 
     this.logger?.debug("[FirestoreBatchUnitOfWork create] completed");
   }

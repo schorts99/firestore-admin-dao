@@ -1,4 +1,4 @@
-import { CollectionReference, Timestamp } from "firebase-admin/firestore";
+import { CollectionReference, Query, Timestamp } from "firebase-admin/firestore";
 import {
   DAO,
   Model,
@@ -126,7 +126,7 @@ export abstract class FirestoreDAO<
     uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork,
     includeDeleted = false,
   ): Promise<Entity[]> {
-    let query = this.collection.limit(1000);
+    let query: Query = this.collection;
 
     if (this.deleteMode === "SOFT" && !includeDeleted) {
       query = query.where("is_deleted", "==", false);
@@ -204,30 +204,12 @@ export abstract class FirestoreDAO<
     uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork,
     includeDeleted = false,
   ): Promise<number> {
-    let query = this.collection.limit(1000);
-
-    if (this.deleteMode === "SOFT" && !includeDeleted) {
-      query = query.where("is_deleted", "==", false);
-    }
-
-    let querySnap;
-
     this.logger?.debug("[FirestoreDAO count] started", {
       uow,
       includeDeleted,
     });
 
-    if (uow && uow instanceof FirestoreTransactionUnitOfWork) {
-      querySnap = await uow.getQuery(query);
-    } else {
-      querySnap = await query.get();
-    }
-
-    this.logger?.debug("[FirestoreDAO count] retrieved query snapshot", {
-      querySnap,
-    });
-
-    const count = querySnap.size;
+    const count = await this.countBy(new Criteria(), uow, includeDeleted);
 
     this.logger?.debug("[FirestoreDAO count] completed", {
       count,
@@ -250,8 +232,8 @@ export abstract class FirestoreDAO<
       uow,
       includeDeleted,
     });
-    
-    const querySnap = await FirestoreCriteriaQueryExecutor.execute(
+
+    const count = await FirestoreCriteriaQueryExecutor.count(
       this.collection,
       criteria,
       uow,
@@ -261,11 +243,11 @@ export abstract class FirestoreDAO<
       }),
     );
 
-    this.logger?.debug("[FirestoreDAO countBy] retrieved query snapshot", {
-      querySnap,
+    this.logger?.debug("[FirestoreDAO countBy] completed", {
+      count,
     });
 
-    return querySnap.size;
+    return count;
   }
 
   async create(entity: Entity, uow?: FirestoreBatchUnitOfWork | FirestoreTransactionUnitOfWork): Promise<Entity> {

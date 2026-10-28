@@ -134,7 +134,7 @@ describe("FirestoreDAO", () => {
       const users = await dao.getAll();
 
       expect(users.map((user) => user.id.value)).toEqual(["user-1", "user-2"]);
-      expect(collection.issued[0]).toEqual([["limit", 1000]]);
+      expect(collection.issued[0]).toEqual([]);
     });
 
     it("returns an empty list for an empty collection", async () => {
@@ -149,10 +149,7 @@ describe("FirestoreDAO", () => {
       await dao.getAll();
       await dao.getAll(undefined, true);
 
-      expect(collection.issued).toEqual([
-        [["limit", 1000], ["where", "is_deleted", "==", false]],
-        [["limit", 1000]],
-      ]);
+      expect(collection.issued).toEqual([[["where", "is_deleted", "==", false]], []]);
     });
 
     it("reads through the transaction when one is given", async () => {
@@ -194,10 +191,19 @@ describe("FirestoreDAO", () => {
   });
 
   describe("#count", () => {
-    it("counts the documents", async () => {
-      const { dao } = setup({ "user-1": storedUser(), "user-2": storedUser() });
+    it("counts the documents with an aggregate query", async () => {
+      const { collection, dao } = setup({ "user-1": storedUser(), "user-2": storedUser() });
 
       await expect(dao.count()).resolves.toBe(2);
+      expect(collection.issued).toEqual([[["count"]]]);
+    });
+
+    it("is not capped at 1000 documents", async () => {
+      const docs: StoredDocs = {};
+      for (let i = 0; i < 1001; i++) docs[`user-${i}`] = storedUser();
+      const { dao } = setup(docs);
+
+      await expect(dao.count()).resolves.toBe(1001);
     });
 
     it("excludes soft deleted documents in SOFT mode unless asked for them", async () => {
@@ -207,8 +213,8 @@ describe("FirestoreDAO", () => {
       await dao.count(undefined, true);
 
       expect(collection.issued).toEqual([
-        [["limit", 1000], ["where", "is_deleted", "==", false]],
-        [["limit", 1000]],
+        [["where", "is_deleted", "==", false], ["count"]],
+        [["count"]],
       ]);
     });
 
@@ -226,7 +232,7 @@ describe("FirestoreDAO", () => {
       const { collection, dao } = setup({ "user-1": storedUser() });
 
       await expect(dao.countBy(new Criteria().where("name", "EQUAL", "Ada"))).resolves.toBe(1);
-      expect(collection.issued[0]).toEqual([["where", "name", "==", "Ada"]]);
+      expect(collection.issued[0]).toEqual([["where", "name", "==", "Ada"], ["count"]]);
     });
 
     it("excludes soft deleted documents in SOFT mode unless asked for them", async () => {
@@ -235,7 +241,10 @@ describe("FirestoreDAO", () => {
       await dao.countBy(new Criteria());
       await dao.countBy(new Criteria(), undefined, true);
 
-      expect(collection.issued).toEqual([[["where", "is_deleted", "==", false]], []]);
+      expect(collection.issued).toEqual([
+        [["where", "is_deleted", "==", false], ["count"]],
+        [["count"]],
+      ]);
     });
   });
 

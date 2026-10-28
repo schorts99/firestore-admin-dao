@@ -20,6 +20,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - `exists` now honors `includeDeleted` instead of always excluding soft deleted documents.
+- `count` and `countBy` use Firestore aggregate count queries: `count` was capped at 1000 documents, and `countBy` downloaded every match. `GEO_RADIUS` counts still read the documents, since distance is checked on them.
+- `getAll` returns every document instead of the first 1000.
+- `FirestoreBatchUnitOfWork.create` uses `batch.create`, so creating an existing document fails the commit instead of overwriting it, as it already did without a unit of work.
+- `GEO_RADIUS` searches apply orders, offset and limit to the merged, distance-filtered results. Before, limit and orders were applied to each geohash bound and offset was ignored. The bound queries no longer order by the criteria fields, so they need no composite indexes for them.
+- `DataMigrator.migrateFromHardToSoftDelete` reads and commits in pages of up to 500 documents, Firestore's batch limit, instead of one batch for the whole collection.
 
 ## [4.5.0] - 2026-07-02
 

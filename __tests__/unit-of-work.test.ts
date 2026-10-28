@@ -39,7 +39,8 @@ describe("FirestoreBatchUnitOfWork", () => {
     uow.update(docRef, { b: 2 });
     uow.delete(docRef);
 
-    expect(batches[0]!.set).toHaveBeenCalledWith(docRef, { a: 1 });
+    expect(batches[0]!.create).toHaveBeenCalledWith(docRef, { a: 1 });
+    expect(batches[0]!.set).not.toHaveBeenCalled();
     expect(batches[0]!.update).toHaveBeenCalledWith(docRef, { b: 2 });
     expect(batches[0]!.delete).toHaveBeenCalledWith(docRef);
   });
@@ -70,7 +71,7 @@ describe("FirestoreBatchUnitOfWork", () => {
 
     expect(batches[0]!.commit).not.toHaveBeenCalled();
     expect(batches[1]!.commit).toHaveBeenCalledTimes(1);
-    expect(batches[1]!.set).not.toHaveBeenCalled();
+    expect(batches[1]!.create).not.toHaveBeenCalled();
   });
 
   it("works without a logger", async () => {
@@ -109,6 +110,14 @@ describe("FirestoreTransactionUnitOfWork", () => {
     await expect(uow.getQuery(query)).resolves.toEqual({ docs: [] });
     expect(transaction.get).toHaveBeenCalledWith(ref);
     expect(transaction.get).toHaveBeenCalledWith(query);
+  });
+
+  it("counts a query's documents through the transaction", async () => {
+    const countQuery = { get: jest.fn(async () => ({ data: () => ({ count: 7 }) })) };
+    const query = asFirestore<Query>({ count: () => countQuery });
+
+    await expect(uow.count(query)).resolves.toBe(7);
+    expect(transaction.get).toHaveBeenCalledWith(countQuery);
   });
 
   it("writes through the transaction", () => {
